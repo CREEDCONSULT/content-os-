@@ -17,12 +17,19 @@ from app.db.models import (
     Brand,
     BrandDocument,
     BrandDocumentVersion,
+    BriefStatus,
     CanonicalStatus,
+    ContentBrief,
     ContentItem,
+    HookOption,
     Idea,
     IdeaStatus,
     MetricSnapshot,
     PipelineStatus,
+    ReviewStatus,
+    Script,
+    ScriptStatus,
+    ScriptVersion,
     SkillDefinition,
     Task,
 )
@@ -489,13 +496,131 @@ def seed_workspace(db: Session, brand: Brand) -> None:
     db.commit()
 
 
+def seed_authoring(db: Session, brand: Brand) -> int:
+    if db.scalar(select(ContentBrief.id).where(ContentBrief.brand_id == brand.id).limit(1)):
+        return 0
+    idea = db.scalar(
+        select(Idea).where(
+            Idea.brand_id == brand.id,
+            Idea.title == "Building BrandOS in public",
+        )
+    )
+    if not idea:
+        return 0
+    content = db.scalar(select(ContentItem).where(ContentItem.idea_id == idea.id))
+    if not content:
+        return 0
+    brief = ContentBrief(
+        brand_id=brand.id,
+        idea_id=idea.id,
+        content_item_id=content.id,
+        title="Building my personal Brand OS",
+        objective="Show how a founder turns brand strategy into a governed operating system.",
+        audience=idea.audience,
+        platform="LinkedIn",
+        format="Post",
+        pillar="Build",
+        series="Building Creed",
+        core_message=idea.raw_input,
+        audience_problem=(
+            "Consistency fails when ideas, evidence, production, and learning are split."
+        ),
+        desired_emotion="clarity and constructive ambition",
+        desired_action="Audit one disconnected part of your own creative workflow.",
+        proof_points=[],
+        benchmark_references=[],
+        visual_direction="Editorial founder note with dark-and-gold system diagrams.",
+        production_constraints=[
+            "Use only verified product behavior.",
+            "Do not imply public launch.",
+        ],
+        duration_seconds=90,
+        cta="What part of your creative workflow needs a system?",
+        success_metric="Qualified saves and builder replies",
+        evidence_status=ReviewStatus.NEEDS_REVIEW,
+        status=BriefStatus.READY,
+        is_demo=True,
+    )
+    db.add(brief)
+    db.flush()
+    script = Script(
+        brand_id=brand.id,
+        content_brief_id=brief.id,
+        content_item_id=content.id,
+        title=brief.title,
+        status=ScriptStatus.DRAFT,
+        fact_check_status=ReviewStatus.NEEDS_REVIEW,
+        version_count=1,
+        is_demo=True,
+    )
+    db.add(script)
+    db.flush()
+    hook = "Consistency is not a personality trait. It is a system design problem."
+    body = (
+        "I used to think a stronger content habit was the answer. The real problem was that "
+        "my ideas, brand rules, drafts, production, and learning lived in different places. "
+        "So I started building BrandOS: one governed path from possibility to evidence. "
+        "The lesson is simple: when the work matters, do not rely on memory and motivation. "
+        "Build the system that makes the next right action visible."
+    )
+    version = ScriptVersion(
+        script_id=script.id,
+        version_number=1,
+        body_text=body,
+        hook_selected=hook,
+        on_screen_text=["Possibility", "System", "Evidence"],
+        b_roll_notes=["BrandOS command center", "Idea capture", "Approval queue"],
+        camera_notes=["Direct-to-camera opening", "Screen recording for proof"],
+        cta=brief.cta,
+        duration_seconds=75,
+        brand_alignment_score=9.3,
+        originality_score=8.8,
+        evidence_notes=["Demo draft; product claims require live verification before approval."],
+        change_summary="Seeded first script draft",
+        checksum_sha256=hashlib.sha256(f"{hook}\n{body}\n{brief.cta}".encode()).hexdigest(),
+        created_by="system:seed",
+        is_active=True,
+    )
+    db.add(version)
+    db.flush()
+    script.current_version_id = version.id
+    hook_specs = [
+        (hook, "declaration", 9.2, True),
+        ("What if your content problem is really a systems problem?", "question", 8.8, False),
+        ("I stopped chasing consistency and started engineering it.", "contrarian", 8.9, False),
+    ]
+    for text, category, score, recommended in hook_specs:
+        db.add(
+            HookOption(
+                script_version_id=version.id,
+                text=text,
+                category=category,
+                clarity_score=score,
+                curiosity_score=score,
+                specificity_score=score - 0.4,
+                brand_fit_score=9.4,
+                audience_fit_score=9.0,
+                originality_score=8.8,
+                total_score=score,
+                is_recommended=recommended,
+            )
+        )
+    db.commit()
+    return 1
+
+
 def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int]:
     brand = seed_brand(db)
     resolved_source_root = source_root or resolve_source_root()
     imported = import_documents(db, brand, resolved_source_root)
     skills_imported = import_skill_definitions(db, resolved_source_root)
     seed_workspace(db, brand)
-    return {"documents_imported": imported, "skills_imported": skills_imported}
+    authoring_seeded = seed_authoring(db, brand)
+    return {
+        "documents_imported": imported,
+        "skills_imported": skills_imported,
+        "authoring_seeded": authoring_seeded,
+    }
 
 
 def main() -> None:
@@ -504,7 +629,8 @@ def main() -> None:
     print(
         "Seed complete: "
         f"{result['documents_imported']} source documents and "
-        f"{result['skills_imported']} skill definitions imported."
+        f"{result['skills_imported']} skill definitions imported; "
+        f"{result['authoring_seeded']} authoring workspace seeded."
     )
 
 

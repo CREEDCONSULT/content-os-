@@ -13,7 +13,7 @@ Content Lifecycle slice.
 | API lint | `npm run lint:api` | Passed |
 | Web type check | `npm run typecheck` | Passed |
 | Web tests | `npm run test:web` | 7 passed |
-| API tests | `npm run test:api` | 8 passed; 2 dependency deprecation warnings |
+| API tests | `npm run test:api` | 15 passed; 2 dependency deprecation warnings |
 | Production web build | `npm run build` | Passed; 11 static App Router routes generated |
 | Complete code gate | `npm run check` | Passed |
 | Compose validation | `docker compose config --quiet` | Passed |
@@ -97,3 +97,24 @@ repository total to 19.
 
 The live OpenAI path was not called. No credential or model alias is configured,
 and deterministic mock mode remains visibly active.
+
+## Brief and script increment
+
+Milestone 5 adds three API tests and a complete non-demo live smoke.
+
+| Check | Result |
+|---|---|
+| Idea to brief | Linked brief and content item created without overwriting source idea |
+| Script versioning | Immutable versions, checksum, active pointer, and history passed |
+| Hook Lab | Independent hook records and explainable scores returned |
+| Fact check | Unresolved and unsourced claims block approval |
+| Financial safety | Guaranteed returns and direct buy signals blocked |
+| Revision reset | New version reset fact-check and approval state |
+| Script approval | Exact version created pending approval and backend decision |
+| Production gate | Non-demo content was blocked before approval and advanced after approval |
+| Migration cycle | `upgrade -> downgrade -1 -> upgrade -> check` passed |
+| Script Studio | ESLint, TypeScript, and Next.js production build passed |
+
+The live local path used the persisted `Browser QA: live capture verified` idea. It
+ended with a non-demo approved script and linked content in `ready_to_shoot`. No
+public publishing or external provider call occurred.

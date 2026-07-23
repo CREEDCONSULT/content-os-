@@ -49,7 +49,7 @@ export type DashboardSummary = {
   };
 };
 
-export type CanonicalStatus = "canonical" | "reference" | "draft" | "deprecated";
+export type CanonicalStatus = "canonical" | "working" | "archived" | "restricted";
 
 export type BrandDocument = {
   id: string;
@@ -84,10 +84,10 @@ export type IdeaStatus =
   | "captured"
   | "clarifying"
   | "researching"
-  | "scored"
   | "selected"
   | "rejected"
-  | "converted";
+  | "converted_to_brief"
+  | "archived";
 
 export type Idea = {
   id: string;
@@ -288,4 +288,106 @@ export type AgentRun = {
 export type AgentRunList = {
   items: AgentRun[];
   total: number;
+};
+
+export type ContentBrief = {
+  id: string;
+  idea_id: string;
+  content_item_id: string;
+  title: string;
+  objective: string;
+  audience: string;
+  platform: string;
+  format: string;
+  pillar: string;
+  series: string | null;
+  core_message: string;
+  audience_problem: string;
+  desired_emotion: string;
+  desired_action: string;
+  proof_points: Record<string, unknown>[];
+  benchmark_references: Record<string, unknown>[];
+  visual_direction: string;
+  production_constraints: string[];
+  duration_seconds: number;
+  cta: string;
+  success_metric: string;
+  evidence_status: "not_started" | "needs_review" | "verified" | "blocked";
+  status: "draft" | "proof_needed" | "ready" | "archived";
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScriptVersion = {
+  id: string;
+  script_id: string;
+  version_number: number;
+  body_text: string;
+  hook_selected: string;
+  on_screen_text: string[];
+  b_roll_notes: string[];
+  camera_notes: string[];
+  cta: string;
+  duration_seconds: number;
+  brand_alignment_score: number;
+  originality_score: number;
+  evidence_notes: string[];
+  change_summary: string;
+  checksum_sha256: string;
+  created_by: string;
+  approval_id: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type HookOption = {
+  id: string;
+  script_version_id: string;
+  text: string;
+  category: string;
+  clarity_score: number;
+  curiosity_score: number;
+  specificity_score: number;
+  brand_fit_score: number;
+  audience_fit_score: number;
+  originality_score: number;
+  total_score: number;
+  is_recommended: boolean;
+  fatigue_warning: string | null;
+};
+
+export type FactCheck = {
+  id: string;
+  script_version_id: string;
+  status: "not_started" | "needs_review" | "verified" | "blocked";
+  claim_table: Record<string, unknown>[];
+  sources: Record<string, unknown>[];
+  unresolved_claims: string[];
+  verified_text: string;
+  confidence: number;
+  financial_classification: string;
+  blocked_claims: string[];
+  risk_disclosures: string[];
+  reviewed_by: string;
+  reviewed_at: string;
+};
+
+export type Script = {
+  id: string;
+  content_brief_id: string;
+  content_item_id: string;
+  title: string;
+  status: "draft" | "review" | "approved" | "rejected" | "archived";
+  current_version_id: string | null;
+  version_count: number;
+  fact_check_status: "not_started" | "needs_review" | "verified" | "blocked";
+  financial_risk: "low" | "medium" | "high" | "critical";
+  approval_status: "not_required" | "pending" | "approved" | "rejected";
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+  current_version: ScriptVersion | null;
+  hooks: HookOption[];
+  fact_check: FactCheck | null;
 };

@@ -6,6 +6,7 @@ import type {
   BrandDocument,
   BrandDocumentDetail,
   ContentItem,
+  ContentBrief,
   ContentList,
   DashboardSummary,
   Idea,
@@ -13,6 +14,7 @@ import type {
   Integration,
   PipelineStatus,
   SkillDefinition,
+  Script,
 } from "@/lib/contracts";
 
 const API_BASE_URL =
@@ -113,4 +115,67 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ channel: "dashboard", ...payload }),
     }),
+  briefs: () => request<ContentBrief[]>("/api/v1/studio/briefs"),
+  createBriefFromIdea: (
+    ideaId: string,
+    payload: { platform: string; format: string },
+  ) =>
+    request<ContentBrief>(`/api/v1/studio/briefs/from-idea/${ideaId}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  scripts: () => request<Script[]>("/api/v1/studio/scripts"),
+  createScript: (
+    briefId: string,
+    payload: {
+      body_text: string;
+      hook_selected: string;
+      hook_variants: string[];
+      cta: string;
+      duration_seconds: number;
+      brand_alignment_score: number;
+      originality_score: number;
+      change_summary: string;
+    },
+  ) =>
+    request<Script>(`/api/v1/studio/briefs/${briefId}/scripts`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  addScriptVersion: (
+    scriptId: string,
+    payload: {
+      body_text: string;
+      hook_selected: string;
+      hook_variants: string[];
+      cta: string;
+      duration_seconds: number;
+      brand_alignment_score: number;
+      originality_score: number;
+      change_summary: string;
+    },
+  ) =>
+    request<Script>(`/api/v1/studio/scripts/${scriptId}/versions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  factCheckScript: (
+    scriptId: string,
+    payload: {
+      claim_table: Record<string, unknown>[];
+      sources: Record<string, unknown>[];
+      unresolved_claims: string[];
+      verified_text: string;
+      confidence: number;
+    },
+  ) =>
+    request<Script["fact_check"]>(`/api/v1/studio/scripts/${scriptId}/fact-check`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  submitScript: (scriptId: string) =>
+    request<{ script: Script; approval_id: string }>(
+      `/api/v1/studio/scripts/${scriptId}/submit`,
+      { method: "POST" },
+    ),
 };

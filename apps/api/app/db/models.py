@@ -80,6 +80,28 @@ class RiskLevel(StrEnum):
     CRITICAL = "critical"
 
 
+class BriefStatus(StrEnum):
+    DRAFT = "draft"
+    PROOF_NEEDED = "proof_needed"
+    READY = "ready"
+    ARCHIVED = "archived"
+
+
+class ScriptStatus(StrEnum):
+    DRAFT = "draft"
+    REVIEW = "review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ARCHIVED = "archived"
+
+
+class ReviewStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    NEEDS_REVIEW = "needs_review"
+    VERIFIED = "verified"
+    BLOCKED = "blocked"
+
+
 class Timestamped:
     id: Mapped[str] = mapped_column(
         Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -194,6 +216,154 @@ class ContentItem(Timestamped, Base):
     )
     blocker: Mapped[str | None] = mapped_column(String(500))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ContentBrief(Timestamped, Base):
+    __tablename__ = "content_briefs"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    idea_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("ideas.id"), unique=True, index=True
+    )
+    content_item_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), unique=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    objective: Mapped[str] = mapped_column(String(500), nullable=False)
+    audience: Mapped[str] = mapped_column(String(160), nullable=False)
+    platform: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    format: Mapped[str] = mapped_column(String(80), nullable=False)
+    pillar: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    series: Mapped[str | None] = mapped_column(String(120))
+    core_message: Mapped[str] = mapped_column(Text, nullable=False)
+    audience_problem: Mapped[str] = mapped_column(Text, nullable=False)
+    desired_emotion: Mapped[str] = mapped_column(String(120), nullable=False)
+    desired_action: Mapped[str] = mapped_column(String(240), nullable=False)
+    proof_points: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    benchmark_references: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    visual_direction: Mapped[str] = mapped_column(Text, nullable=False)
+    production_constraints: Mapped[list[str]] = mapped_column(JSON, default=list)
+    duration_seconds: Mapped[int] = mapped_column(Integer, default=60)
+    cta: Mapped[str] = mapped_column(String(500), nullable=False)
+    success_metric: Mapped[str] = mapped_column(String(240), nullable=False)
+    evidence_status: Mapped[ReviewStatus] = mapped_column(
+        Enum(ReviewStatus, native_enum=False),
+        default=ReviewStatus.NEEDS_REVIEW,
+        index=True,
+    )
+    status: Mapped[BriefStatus] = mapped_column(
+        Enum(BriefStatus, native_enum=False),
+        default=BriefStatus.DRAFT,
+        index=True,
+    )
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class Script(Timestamped, Base):
+    __tablename__ = "scripts"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_brief_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_briefs.id"), unique=True, index=True
+    )
+    content_item_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), unique=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    status: Mapped[ScriptStatus] = mapped_column(
+        Enum(ScriptStatus, native_enum=False),
+        default=ScriptStatus.DRAFT,
+        index=True,
+    )
+    current_version_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False))
+    version_count: Mapped[int] = mapped_column(Integer, default=0)
+    fact_check_status: Mapped[ReviewStatus] = mapped_column(
+        Enum(ReviewStatus, native_enum=False),
+        default=ReviewStatus.NOT_STARTED,
+        index=True,
+    )
+    financial_risk: Mapped[RiskLevel] = mapped_column(
+        Enum(RiskLevel, native_enum=False),
+        default=RiskLevel.LOW,
+        index=True,
+    )
+    approval_status: Mapped[ApprovalStatus] = mapped_column(
+        Enum(ApprovalStatus, native_enum=False),
+        default=ApprovalStatus.NOT_REQUIRED,
+        index=True,
+    )
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ScriptVersion(Timestamped, Base):
+    __tablename__ = "script_versions"
+    __table_args__ = (UniqueConstraint("script_id", "version_number"),)
+
+    script_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("scripts.id"), index=True
+    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    body_text: Mapped[str] = mapped_column(Text, nullable=False)
+    hook_selected: Mapped[str] = mapped_column(Text, nullable=False)
+    on_screen_text: Mapped[list[str]] = mapped_column(JSON, default=list)
+    b_roll_notes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    camera_notes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cta: Mapped[str] = mapped_column(String(500), nullable=False)
+    duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    brand_alignment_score: Mapped[float] = mapped_column(Float, default=0)
+    originality_score: Mapped[float] = mapped_column(Float, default=0)
+    evidence_notes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    change_summary: Mapped[str] = mapped_column(String(500), nullable=False)
+    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(120), nullable=False)
+    approval_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+
+class HookOption(Timestamped, Base):
+    __tablename__ = "hook_options"
+
+    script_version_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("script_versions.id"), index=True
+    )
+    text: Mapped[str] = mapped_column(String(500), nullable=False)
+    category: Mapped[str] = mapped_column(String(80), nullable=False)
+    clarity_score: Mapped[float] = mapped_column(Float, default=0)
+    curiosity_score: Mapped[float] = mapped_column(Float, default=0)
+    specificity_score: Mapped[float] = mapped_column(Float, default=0)
+    brand_fit_score: Mapped[float] = mapped_column(Float, default=0)
+    audience_fit_score: Mapped[float] = mapped_column(Float, default=0)
+    originality_score: Mapped[float] = mapped_column(Float, default=0)
+    total_score: Mapped[float] = mapped_column(Float, default=0, index=True)
+    is_recommended: Mapped[bool] = mapped_column(Boolean, default=False)
+    fatigue_warning: Mapped[str | None] = mapped_column(String(500))
+
+
+class FactCheck(Timestamped, Base):
+    __tablename__ = "fact_checks"
+
+    script_version_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("script_versions.id"), unique=True, index=True
+    )
+    status: Mapped[ReviewStatus] = mapped_column(
+        Enum(ReviewStatus, native_enum=False),
+        default=ReviewStatus.NEEDS_REVIEW,
+        index=True,
+    )
+    claim_table: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    unresolved_claims: Mapped[list[str]] = mapped_column(JSON, default=list)
+    verified_text: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0)
+    financial_classification: Mapped[str] = mapped_column(
+        String(80), default="not_financial"
+    )
+    blocked_claims: Mapped[list[str]] = mapped_column(JSON, default=list)
+    risk_disclosures: Mapped[list[str]] = mapped_column(JSON, default=list)
+    reviewed_by: Mapped[str] = mapped_column(String(120), nullable=False)
+    reviewed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
 
 
 class PipelineEvent(Timestamped, Base):

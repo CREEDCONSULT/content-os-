@@ -8,6 +8,7 @@ import {
   Boxes,
   ChevronRight,
   CircleGauge,
+  FilePenLine,
   Lightbulb,
   LogOut,
   Menu,
@@ -29,6 +30,7 @@ const navigation = [
   { href: "/brand", label: "Brand intelligence", icon: BookOpenText },
   { href: "/ideas", label: "Idea intelligence", icon: Lightbulb },
   { href: "/pipeline", label: "Content lifecycle", icon: Boxes },
+  { href: "/studio", label: "Script studio", icon: FilePenLine },
   { href: "/agent", label: "Agent console", icon: Bot },
   { href: "/approvals", label: "Approval queue", icon: ShieldCheck },
 ];

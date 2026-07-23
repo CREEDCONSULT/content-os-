@@ -5,7 +5,16 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.db.models import ApprovalStatus, CanonicalStatus, IdeaStatus, PipelineStatus, RiskLevel
+from app.db.models import (
+    ApprovalStatus,
+    BriefStatus,
+    CanonicalStatus,
+    IdeaStatus,
+    PipelineStatus,
+    ReviewStatus,
+    RiskLevel,
+    ScriptStatus,
+)
 
 
 class ORMModel(BaseModel):
@@ -344,3 +353,158 @@ class AgentRunView(ORMModel):
 class AgentRunList(BaseModel):
     items: list[AgentRunView]
     total: int
+
+
+class BriefFromIdea(BaseModel):
+    platform: str = Field(default="LinkedIn", min_length=2, max_length=60)
+    format: str = Field(default="Post", min_length=2, max_length=80)
+    objective: str | None = Field(default=None, max_length=500)
+    audience_problem: str | None = Field(default=None, max_length=2000)
+    desired_emotion: str = Field(default="clarity and agency", max_length=120)
+    desired_action: str = Field(
+        default="Save the idea and apply one useful step.",
+        max_length=240,
+    )
+    visual_direction: str = Field(
+        default="Premium founder-led editorial treatment with evidence on screen.",
+        max_length=2000,
+    )
+    production_constraints: list[str] = Field(default_factory=list, max_length=20)
+    duration_seconds: int = Field(default=60, ge=15, le=3600)
+    cta: str = Field(default="What system are you building next?", max_length=500)
+    success_metric: str = Field(default="Qualified saves and substantive replies", max_length=240)
+
+
+class ContentBriefView(ORMModel):
+    id: str
+    idea_id: str
+    content_item_id: str
+    title: str
+    objective: str
+    audience: str
+    platform: str
+    format: str
+    pillar: str
+    series: str | None
+    core_message: str
+    audience_problem: str
+    desired_emotion: str
+    desired_action: str
+    proof_points: list[dict[str, Any]]
+    benchmark_references: list[dict[str, Any]]
+    visual_direction: str
+    production_constraints: list[str]
+    duration_seconds: int
+    cta: str
+    success_metric: str
+    evidence_status: ReviewStatus
+    status: BriefStatus
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ScriptVersionCreate(BaseModel):
+    body_text: str = Field(min_length=20, max_length=100_000)
+    hook_selected: str = Field(min_length=3, max_length=500)
+    hook_variants: list[str] = Field(default_factory=list, max_length=20)
+    on_screen_text: list[str] = Field(default_factory=list, max_length=50)
+    b_roll_notes: list[str] = Field(default_factory=list, max_length=50)
+    camera_notes: list[str] = Field(default_factory=list, max_length=50)
+    cta: str = Field(min_length=2, max_length=500)
+    duration_seconds: int = Field(ge=10, le=7200)
+    brand_alignment_score: float = Field(default=0, ge=0, le=10)
+    originality_score: float = Field(default=0, ge=0, le=10)
+    evidence_notes: list[str] = Field(default_factory=list, max_length=50)
+    change_summary: str = Field(default="Initial script draft", min_length=3, max_length=500)
+
+    @field_validator("hook_variants")
+    @classmethod
+    def unique_hooks(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(item.strip() for item in value if item.strip()))
+
+
+class HookOptionView(ORMModel):
+    id: str
+    script_version_id: str
+    text: str
+    category: str
+    clarity_score: float
+    curiosity_score: float
+    specificity_score: float
+    brand_fit_score: float
+    audience_fit_score: float
+    originality_score: float
+    total_score: float
+    is_recommended: bool
+    fatigue_warning: str | None
+
+
+class ScriptVersionView(ORMModel):
+    id: str
+    script_id: str
+    version_number: int
+    body_text: str
+    hook_selected: str
+    on_screen_text: list[str]
+    b_roll_notes: list[str]
+    camera_notes: list[str]
+    cta: str
+    duration_seconds: int
+    brand_alignment_score: float
+    originality_score: float
+    evidence_notes: list[str]
+    change_summary: str
+    checksum_sha256: str
+    created_by: str
+    approval_id: str | None
+    is_active: bool
+    created_at: datetime
+
+
+class FactCheckCreate(BaseModel):
+    claim_table: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    sources: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    unresolved_claims: list[str] = Field(default_factory=list, max_length=100)
+    verified_text: str = Field(min_length=20, max_length=100_000)
+    confidence: float = Field(ge=0, le=1)
+
+
+class FactCheckView(ORMModel):
+    id: str
+    script_version_id: str
+    status: ReviewStatus
+    claim_table: list[dict[str, Any]]
+    sources: list[dict[str, Any]]
+    unresolved_claims: list[str]
+    verified_text: str
+    confidence: float
+    financial_classification: str
+    blocked_claims: list[str]
+    risk_disclosures: list[str]
+    reviewed_by: str
+    reviewed_at: datetime
+
+
+class ScriptView(ORMModel):
+    id: str
+    content_brief_id: str
+    content_item_id: str
+    title: str
+    status: ScriptStatus
+    current_version_id: str | None
+    version_count: int
+    fact_check_status: ReviewStatus
+    financial_risk: RiskLevel
+    approval_status: ApprovalStatus
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+    current_version: ScriptVersionView | None = None
+    hooks: list[HookOptionView] = Field(default_factory=list)
+    fact_check: FactCheckView | None = None
+
+
+class ScriptApprovalResult(BaseModel):
+    script: ScriptView
+    approval_id: str

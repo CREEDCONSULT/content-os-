@@ -43,6 +43,16 @@ def transition_content(
                 detail="Publishing requires an approved backend approval record.",
             )
 
+    if (
+        target in {PipelineStatus.APPROVED, PipelineStatus.READY_TO_SHOOT}
+        and not item.is_demo
+        and item.approval_status != ApprovalStatus.APPROVED
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A final script approval is required before production.",
+        )
+
     event = PipelineEvent(
         content_item_id=item.id,
         from_status=item.status.value,

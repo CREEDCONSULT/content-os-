@@ -13,7 +13,7 @@ Status labels: `not started`, `in progress`, `implemented`, `verified`, `blocked
 | 2 - Brand Intelligence | verified | 52 source documents imported with immutable versions, provenance, canonical status, detail views, and search | Semantic retrieval and vault synchronization remain Milestone 7 work |
 | 3 - Ideas and Pipeline | verified | Ideas persist and score; seven seeded content items render in a compact five-lane UI backed by the full 15-state lifecycle; transitions and approvals are enforced in the API | Calendar, brief, script, and production records remain subsequent slices |
 | 4 - Agent Runtime | verified | 30 typed skills, deterministic router, canonical context packs, mock and gated OpenAI providers, idempotent run ledger, budget and high-risk approvals, audit events, and Agent Console are connected | OpenAI path is not live-verified; approved runs do not auto-resume; semantic retrieval remains Milestone 7 |
-| 5 - Brief and Script | not started | - | - |
+| 5 - Brief and Script | verified | Linked briefs, immutable script versions, scored hooks, manual fact checks, financial-language blocking, exact-version approvals, and the Script Studio pass API, migration, and production build gates | External research is not automated; hook scores are heuristic; rich-text collaboration is deferred |
 | 6 - Calendar and Production | not started | - | - |
 | 7 - Memory and Vault | not started | Read-only CreedAI boundary documented | Dedicated vault sync, retrieval, conflict handling, and embeddings remain |
 | 8 - Creator Intelligence | not started | - | - |
@@ -46,7 +46,7 @@ Verified behavior:
 
 See [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for exact commands and results.
 
-The connected slices pass lint, type checking, 19 automated tests, the production
+The connected slices pass lint, type checking, 22 automated tests, the production
 frontend build, migration drift detection, Compose configuration, container health,
 authenticated API smoke checks, desktop browser QA, and mobile browser QA.
 

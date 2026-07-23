@@ -21,6 +21,8 @@ The first connected implementation milestone includes:
 - backend-enforced approval records and negative transition tests;
 - typed 30-skill Brand Director runtime, canonical context packs, transparent runs,
   budget gates, and Agent Console;
+- linked brief builder, immutable Script Studio, scored Hook Lab, manual evidence
+  review, financial-language blocking, and final-script production gate;
 - realistic August-December 2026 demo data, visibly labeled in the product.
 
 See [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for verified
@@ -66,3 +68,4 @@ and verification.
 - [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md)
 - [`docs/HUMAN_ACTION_QUEUE.md`](docs/HUMAN_ACTION_QUEUE.md)
 - [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md)
+- [`docs/CONTENT_AUTHORING.md`](docs/CONTENT_AUTHORING.md)

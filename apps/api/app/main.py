@@ -17,6 +17,7 @@ from app.routers import (
     health,
     ideas,
     integrations,
+    studio,
 )
 
 settings = get_settings()
@@ -54,3 +55,4 @@ app.include_router(content.router)
 app.include_router(approvals.router)
 app.include_router(integrations.router)
 app.include_router(agent.router)
+app.include_router(studio.router)
