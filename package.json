@@ -1,0 +1,27 @@
+{
+  "name": "mezie-brandos",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @mezie-brandos/web",
+    "build": "npm run build --workspace @mezie-brandos/web",
+    "lint": "npm run lint:web && npm run lint:api",
+    "lint:web": "npm run lint --workspace @mezie-brandos/web",
+    "lint:api": "uv run --directory apps/api ruff check .",
+    "typecheck": "npm run typecheck --workspace @mezie-brandos/web",
+    "test:web": "npm run test --workspace @mezie-brandos/web",
+    "test:api": "uv run --directory apps/api pytest",
+    "test": "npm run test:web && npm run test:api",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
+}
