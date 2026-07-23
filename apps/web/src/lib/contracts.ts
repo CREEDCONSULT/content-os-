@@ -518,3 +518,215 @@ export type ProofItem = {
   created_at: string;
   updated_at: string;
 };
+
+export type MemoryRecord = {
+  id: string;
+  memory_type: string;
+  title: string;
+  content: string;
+  canonical_status: CanonicalStatus;
+  confidence: number;
+  provenance: Record<string, unknown>;
+  vault_path: string;
+  content_checksum: string;
+  sensitivity: string;
+  review_at: string | null;
+  sync_status: string;
+  embedding_status: string;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type VaultSyncResult = {
+  root: string;
+  initialized_folders: number;
+  exported: number;
+  imported: number;
+  conflicts: number;
+  skipped: number;
+  events: {
+    id: string;
+    direction: string;
+    record_type: string;
+    record_id: string | null;
+    vault_path: string;
+    status: string;
+    details: Record<string, unknown>;
+    created_at: string;
+  }[];
+};
+
+export type Creator = {
+  id: string;
+  name: string;
+  username: string;
+  platform: string;
+  url: string;
+  category: string;
+  why_tracked: string;
+  tier: number;
+  relevance_score: number;
+  content_pillars: string[];
+  formats: string[];
+  voice: string;
+  hook_style: string;
+  production_style: string;
+  audience: string;
+  last_reviewed_at: string | null;
+  watch_status: string;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Benchmark = {
+  id: string;
+  creator_id: string | null;
+  source_url: string;
+  platform: string;
+  title: string;
+  source_type: string;
+  raw_metadata: Record<string, unknown>;
+  transcript_excerpt: string | null;
+  hook_analysis: string;
+  structure_analysis: string;
+  visual_analysis: string;
+  editing_analysis: string;
+  transferable_mechanics: string[];
+  protected_identity: string[];
+  mezie_adaptations: string[];
+  pattern_tags: string[];
+  limitations: string[];
+  evidence_level: string;
+  status: string;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TelegramMessage = {
+  id: string;
+  update_id: string;
+  sender_id: string;
+  message_id: string | null;
+  message_type: string;
+  text: string | null;
+  transcript: string | null;
+  source_reference: string | null;
+  classification: string;
+  status: string;
+  created_record_type: string | null;
+  created_record_id: string | null;
+  response_text: string;
+  failure_reason: string | null;
+  is_demo: boolean;
+  created_at: string;
+};
+
+export type DailyBrief = {
+  id: string;
+  heartbeat_run_id: string;
+  brief_date: string;
+  title: string;
+  what_changed: Record<string, unknown>[];
+  creator_watch: Record<string, unknown>[];
+  trend_signals: Record<string, unknown>[];
+  content_opportunities: Record<string, unknown>[];
+  risks_noise: string[];
+  recommended_actions: string[];
+  recommended_action: string;
+  coverage_gaps: string[];
+  vault_path: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HeartbeatRun = {
+  id: string;
+  run_date: string;
+  trigger: string;
+  idempotency_key: string;
+  status: string;
+  source_coverage: Record<string, unknown>[];
+  model_alias: string;
+  tools_used: string[];
+  model_cost: number;
+  tool_cost: number;
+  context_pack_id: string | null;
+  records_changed: Record<string, unknown>[];
+  errors: string[];
+  confidence: number;
+  completed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+  brief: DailyBrief | null;
+};
+
+export type MetricSnapshot = {
+  id: string;
+  content_item_id: string | null;
+  platform: string;
+  captured_at: string;
+  views: number;
+  impressions: number;
+  engagement: number;
+  saves: number;
+  shares: number;
+  watch_time_seconds: number;
+  is_demo: boolean;
+  created_at: string;
+};
+
+export type Insight = {
+  id: string;
+  content_item_id: string | null;
+  classification: string;
+  title: string;
+  observation: string;
+  hypothesis: string;
+  evidence: Record<string, unknown>[];
+  confidence: number;
+  status: string;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalyticsOverview = {
+  metrics: MetricSnapshot[];
+  insights: Insight[];
+  totals: Record<"views" | "impressions" | "engagement" | "saves" | "shares", number>;
+  platform_breakdown: {
+    platform: string;
+    views: number;
+    engagement: number;
+    saves: number;
+    shares: number;
+    records: number;
+  }[];
+};
+
+export type Experiment = {
+  id: string;
+  title: string;
+  question: string;
+  hypothesis: string;
+  variable: string;
+  control_conditions: string[];
+  platform: string;
+  content_type: string;
+  expected_outcome: string;
+  success_metric: string;
+  measurement_start: string | null;
+  measurement_end: string | null;
+  status: string;
+  result: string | null;
+  interpretation: string | null;
+  confidence: number;
+  decision: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};

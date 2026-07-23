@@ -9,19 +9,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.routers import (
     agent,
+    analytics,
     approvals,
     assets,
     auth,
     brand,
     calendar,
     content,
+    creator_intelligence,
     dashboard,
     health,
+    heartbeat,
     ideas,
     integrations,
+    memory,
     production,
     proof,
     studio,
+    telegram,
 )
 
 settings = get_settings()
@@ -64,3 +69,8 @@ app.include_router(calendar.router)
 app.include_router(production.router)
 app.include_router(assets.router)
 app.include_router(proof.router)
+app.include_router(memory.router)
+app.include_router(creator_intelligence.router)
+app.include_router(telegram.router)
+app.include_router(heartbeat.router)
+app.include_router(analytics.router)

@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
   Award,
+  Activity,
+  BarChart3,
   Bot,
   BookOpenText,
   Boxes,
@@ -19,6 +21,7 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  UsersRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -39,6 +42,9 @@ const navigation = [
   { href: "/production", label: "Production & shoot", icon: Clapperboard },
   { href: "/assets", label: "Asset library", icon: FolderArchive },
   { href: "/proof", label: "Proof of work", icon: Award },
+  { href: "/benchmarks", label: "Creator benchmarks", icon: UsersRound },
+  { href: "/intelligence", label: "Daily intelligence", icon: Activity },
+  { href: "/analytics", label: "Analytics & learning", icon: BarChart3 },
   { href: "/agent", label: "Agent console", icon: Bot },
   { href: "/approvals", label: "Approval queue", icon: ShieldCheck },
 ];

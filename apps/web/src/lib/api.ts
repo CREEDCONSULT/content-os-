@@ -3,23 +3,31 @@ import type {
   AgentRunList,
   Approval,
   Asset,
+  AnalyticsOverview,
   AuthUser,
   BrandDocument,
   BrandDocumentDetail,
   CalendarEvent,
   CapacityPlan,
+  Benchmark,
+  Creator,
   ContentItem,
   ContentBrief,
   ContentList,
   DashboardSummary,
+  Experiment,
+  HeartbeatRun,
   Idea,
   IdeaList,
   Integration,
+  MemoryRecord,
   PipelineStatus,
   ProductionPlan,
   ProofItem,
   SkillDefinition,
   Script,
+  TelegramMessage,
+  VaultSyncResult,
 } from "@/lib/contracts";
 
 const API_BASE_URL =
@@ -269,6 +277,101 @@ export const api = {
     sensitivity: string;
   }) =>
     request<ProofItem>("/api/v1/proof", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  memoryRecords: () => request<MemoryRecord[]>("/api/v1/memory/records"),
+  syncVault: () =>
+    request<VaultSyncResult>("/api/v1/memory/vault/sync", { method: "POST" }),
+  creators: () => request<Creator[]>("/api/v1/intelligence/creators"),
+  createCreator: (payload: {
+    name: string;
+    username: string;
+    platform: string;
+    url: string;
+    why_tracked: string;
+    tier: number;
+    relevance_score: number;
+  }) =>
+    request<Creator>("/api/v1/intelligence/creators", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  benchmarks: () => request<Benchmark[]>("/api/v1/intelligence/benchmarks"),
+  createBenchmark: (payload: {
+    creator_id?: string;
+    source_url: string;
+    title: string;
+    transcript_excerpt?: string;
+    observed_hook: string;
+    observed_structure: string;
+    visual_notes?: string;
+    editing_notes?: string;
+    transferable_mechanics: string[];
+    pattern_tags: string[];
+  }) =>
+    request<Benchmark>("/api/v1/intelligence/benchmarks", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  heartbeatRuns: () => request<HeartbeatRun[]>("/api/v1/heartbeat/runs"),
+  runHeartbeat: () =>
+    request<HeartbeatRun>("/api/v1/heartbeat/run", {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  telegramMessages: () => request<TelegramMessage[]>("/api/v1/telegram/messages"),
+  captureTelegramFixture: (payload: {
+    sender_id: number;
+    message_type: "text" | "voice" | "link";
+    text?: string;
+    transcript?: string;
+    source_reference?: string;
+  }) =>
+    request<TelegramMessage>("/api/v1/telegram/capture-test", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  analyticsOverview: () =>
+    request<AnalyticsOverview>("/api/v1/analytics/overview"),
+  importAnalytics: async (formData: FormData) => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/analytics/import`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    if (!response.ok) {
+      let message = `Import failed (${response.status})`;
+      try {
+        const body = (await response.json()) as { detail?: string };
+        if (body.detail) message = body.detail;
+      } catch {
+        // Retain the status fallback.
+      }
+      throw new ApiError(message, response.status);
+    }
+    return (await response.json()) as {
+      imported: number;
+      rejected: number;
+      errors: string[];
+      insight_ids: string[];
+    };
+  },
+  experiments: () => request<Experiment[]>("/api/v1/analytics/experiments"),
+  createExperiment: (payload: {
+    title: string;
+    question: string;
+    hypothesis: string;
+    variable: string;
+    control_conditions: string[];
+    platform: string;
+    content_type: string;
+    expected_outcome: string;
+    success_metric: string;
+    measurement_start?: string;
+    measurement_end?: string;
+  }) =>
+    request<Experiment>("/api/v1/analytics/experiments", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

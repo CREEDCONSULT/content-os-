@@ -15,11 +15,11 @@ Status labels: `not started`, `in progress`, `implemented`, `verified`, `blocked
 | 4 - Agent Runtime | verified | 30 typed skills, deterministic router, canonical context packs, mock and gated OpenAI providers, idempotent run ledger, budget and high-risk approvals, audit events, and Agent Console are connected | OpenAI path is not live-verified; approved runs do not auto-resume; semantic retrieval remains Milestone 7 |
 | 5 - Brief and Script | verified | Linked briefs, immutable script versions, scored hooks, manual fact checks, financial-language blocking, exact-version approvals, and the Script Studio pass API, migration, and production build gates | External research is not automated; hook scores are heuristic; rich-text collaboration is deferred |
 | 6 - Calendar and Production | verified | Weekly capacity plans, overbooking prevention, internal events, generated production plans, scenes, shots, logistics, server-computed readiness, mobile shoot checklist, asset ingestion, and reversible migration pass tests and live PostgreSQL smoke | External calendar sync and media transformation are intentionally deferred |
-| 7 - Memory and Vault | not started | Read-only CreedAI boundary documented | Dedicated vault sync, retrieval, conflict handling, and embeddings remain |
-| 8 - Creator Intelligence | not started | - | - |
-| 9 - Telegram | not started | Disabled adapter state is disclosed | Capture and sender verification remain |
-| 10 - Heartbeat | not started | - | - |
-| 11 - Analytics and Proof | in progress | Permission-aware proof records and evidence gates are connected; seeded demo metric and proof are visibly labeled | Analytics import, experiments, and the learning loop remain |
+| 7 - Memory and Vault | verified | Persistent dedicated vault, 14-area folder tree, canonical/approved export, founder-note import, Idea write-back, checksum conflicts, sync ledger, lexical retrieval, and context-pack memory passed local and live tests | pgvector/embedding and optional Creed Memory sync remain disabled pending configuration |
+| 8 - Creator Intelligence | verified | Tiered watchlist, URL/source records, evidence-aware teardown, protected identity split, eight-word copying safeguard, and original Mezie adaptations are connected | Apify, media acquisition, and automated transcription remain disabled |
+| 9 - Telegram | verified | Signed webhook, constant-time secret check, sender allowlist, update idempotency, text/link/voice states, dashboard write-back, and visibly labeled fixture simulator pass tests | Live bot credentials and outbound Telegram responses are not configured |
+| 10 - Heartbeat | verified | Manual and durable scheduler entry points, daily deduplication, canonical context, local creator/analytics review, transparent source/cost log, dashboard brief, and vault export are connected | External freshness scan and Telegram summary are disabled; partial status discloses gaps |
+| 11 - Analytics and Proof | verified | Manual metric API, partial-row CSV normalization, non-causal insights, single-variable experiment ledger, permission-aware proof records, and evidence gates pass tests | Platform API ingestion and statistical-significance automation are deferred |
 | 12 - PWA and Hardening | in progress | Responsive web manifest, mobile navigation, secure-cookie production gate, Compose health checks, and local persistent volumes are implemented | Offline capture, backup/restore, accessibility automation, and deployment hardening remain |
 
 ## Current connected slice
@@ -52,7 +52,7 @@ Verified behavior:
 
 See [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for exact commands and results.
 
-The connected slices pass lint, type checking, 26 automated tests, the production
+The connected slices pass lint, type checking, 31 automated tests, the production
 frontend build, migration drift detection, Compose configuration, container health,
 authenticated API smoke checks, desktop browser QA, and mobile browser QA.
 

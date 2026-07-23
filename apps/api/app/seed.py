@@ -15,6 +15,7 @@ from app.db.models import (
     ApprovalStatus,
     Asset,
     AuditEvent,
+    BenchmarkContent,
     Brand,
     BrandDocument,
     BrandDocumentVersion,
@@ -24,9 +25,15 @@ from app.db.models import (
     CapacityPlan,
     ContentBrief,
     ContentItem,
+    Creator,
+    DailyBrief,
+    Experiment,
+    HeartbeatRun,
+    HeartbeatSetting,
     HookOption,
     Idea,
     IdeaStatus,
+    Insight,
     MetricSnapshot,
     PipelineStatus,
     ProductionChecklistItem,
@@ -839,6 +846,216 @@ def seed_planning_and_proof(db: Session, brand: Brand) -> int:
     return 1
 
 
+def seed_intelligence(db: Session, brand: Brand) -> int:
+    if db.scalar(select(Creator.id).where(Creator.brand_id == brand.id).limit(1)):
+        return 0
+
+    creator_specs = [
+        (
+            "DEMO · Systems Educator",
+            "demo-systems-educator",
+            "YouTube",
+            1,
+            8.8,
+            ["Build", "Lead"],
+            ["Explainer", "Founder note"],
+        ),
+        (
+            "DEMO · AI Builder",
+            "demo-ai-builder",
+            "LinkedIn",
+            2,
+            8.4,
+            ["Leverage", "Create"],
+            ["Build log", "Carousel"],
+        ),
+        (
+            "DEMO · Ownership Teacher",
+            "demo-ownership-teacher",
+            "Instagram",
+            3,
+            7.7,
+            ["Own"],
+            ["Reel", "Visual explainer"],
+        ),
+    ]
+    creators: list[Creator] = []
+    for name, username, platform, tier, relevance, pillars, formats in creator_specs:
+        creator = Creator(
+            brand_id=brand.id,
+            name=name,
+            username=username,
+            platform=platform,
+            url=f"https://example.test/{username}",
+            category="Builder Intelligence reference",
+            why_tracked="DEMO record for exercising the local watchlist and heartbeat.",
+            tier=tier,
+            relevance_score=relevance,
+            content_pillars=pillars,
+            formats=formats,
+            voice="Clear, practical, and evidence-oriented demo classification.",
+            hook_style="Starts with an operational tension.",
+            production_style="Simple founder-led framing with restrained visual evidence.",
+            audience="Builders and operators",
+            last_reviewed_at=datetime(2026, 8, 1, 12, tzinfo=UTC),
+            watch_status="active",
+            is_demo=True,
+        )
+        db.add(creator)
+        db.flush()
+        creators.append(creator)
+
+    benchmark = BenchmarkContent(
+        brand_id=brand.id,
+        creator_id=creators[0].id,
+        source_url="https://example.test/demo-systems-educator/system-before-motivation",
+        platform="youtube",
+        title="DEMO · System before motivation teardown",
+        source_type="seed",
+        raw_metadata={"synthetic": True, "external_acquisition": False},
+        transcript_excerpt=None,
+        hook_analysis="DEMO inference: begin with the cost of relying on motivation.",
+        structure_analysis="Tension, mechanism, first-party evidence, next action.",
+        visual_analysis="DEMO inference: founder framing plus a concise system diagram.",
+        editing_analysis="DEMO inference: deliberate pacing with minimal transition effects.",
+        transferable_mechanics=[
+            "Name the operational tension before revealing the system",
+            "Use first-party evidence to make an abstract workflow tangible",
+        ],
+        protected_identity=[
+            "Do not reuse exact wording, signature identity, or distinctive expression."
+        ],
+        mezie_adaptations=[
+            "Apply the tension-to-system mechanic to original BrandOS readiness evidence."
+        ],
+        pattern_tags=["systems", "evidence", "founder-led"],
+        limitations=[
+            "Synthetic demo record; no external creator content was acquired or measured."
+        ],
+        evidence_level="demo_synthetic",
+        status="analyzed",
+        is_demo=True,
+    )
+    db.add(benchmark)
+    db.flush()
+
+    setting = HeartbeatSetting(
+        brand_id=brand.id,
+        enabled=False,
+        schedule_hour=7,
+        timezone="America/Toronto",
+        mode="lean",
+        max_sources=10,
+        max_creators=5,
+        telegram_summary_enabled=False,
+    )
+    db.add(setting)
+    run = HeartbeatRun(
+        brand_id=brand.id,
+        run_date=date(2026, 8, 1),
+        trigger="seed",
+        idempotency_key="demo-heartbeat-2026-08-01",
+        status="partial",
+        source_coverage=[
+            {"source": "demo_watchlist", "status": "synthetic", "records": 3},
+            {"source": "external_research", "status": "disabled", "records": 0},
+        ],
+        model_alias="deterministic_demo",
+        tools_used=["database"],
+        model_cost=0,
+        tool_cost=0,
+        records_changed=[],
+        errors=["DEMO record; external freshness was not checked."],
+        confidence=0.4,
+        completed_at=datetime(2026, 8, 1, 13, tzinfo=UTC),
+        is_demo=True,
+    )
+    db.add(run)
+    db.flush()
+    brief = DailyBrief(
+        brand_id=brand.id,
+        heartbeat_run_id=run.id,
+        brief_date=date(2026, 8, 1),
+        title="DEMO · Daily Brand Intelligence · 2026-08-01",
+        what_changed=[
+            {
+                "summary": "Synthetic example: system-led creator formats remain relevant.",
+                "classification": "demo_hypothesis",
+            }
+        ],
+        creator_watch=[
+            {
+                "creator_id": creators[0].id,
+                "name": creators[0].name,
+                "summary": "Synthetic watchlist example; no live scan occurred.",
+            }
+        ],
+        trend_signals=[],
+        content_opportunities=[
+            {
+                "title": "Why production readiness needs durable blockers",
+                "pillar": "Build",
+                "series": "Building Creed",
+                "classification": "demo_hypothesis",
+            }
+        ],
+        risks_noise=["Do not mistake seeded creator patterns for live performance evidence."],
+        recommended_actions=["Run a manual heartbeat after adding real operator evidence."],
+        recommended_action="Review the demo structure, then run a source-grounded local brief.",
+        coverage_gaps=["External creator activity and trends were not checked."],
+        is_demo=True,
+    )
+    db.add(brief)
+    db.flush()
+    run.records_changed = [
+        {"record_type": "daily_brief", "record_id": brief.id, "action": "seeded"}
+    ]
+
+    metric = db.scalar(
+        select(MetricSnapshot)
+        .where(MetricSnapshot.brand_id == brand.id)
+        .order_by(MetricSnapshot.created_at)
+    )
+    db.add(
+        Insight(
+            brand_id=brand.id,
+            content_item_id=metric.content_item_id if metric else None,
+            classification="raw_observation",
+            title="DEMO · Saves suggest utility, not causation",
+            observation="The seeded X thread records 83 saves and 47 shares.",
+            hypothesis=(
+                "Practical system language may support saves, but one synthetic record "
+                "cannot establish a driver."
+            ),
+            evidence=[{"metric_snapshot_id": metric.id if metric else None, "synthetic": True}],
+            confidence=0.2,
+            status="working",
+            is_demo=True,
+        )
+    )
+    db.add(
+        Experiment(
+            brand_id=brand.id,
+            title="DEMO · Identity hook versus educational hook",
+            question="Do identity-based hooks improve qualified saves for Builder Walks?",
+            hypothesis="Identity hooks may improve qualified saves.",
+            variable="hook type",
+            control_conditions=["Same topic", "Same duration", "Same production quality"],
+            platform="Instagram",
+            content_type="Builder Walk",
+            expected_outcome="A measurable difference in save rate.",
+            success_metric="Save rate",
+            measurement_start=date(2026, 9, 1),
+            measurement_end=date(2026, 9, 21),
+            status="planned",
+            confidence=0,
+            is_demo=True,
+        )
+    )
+    db.commit()
+    return 1
+
+
 def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int]:
     brand = seed_brand(db)
     resolved_source_root = source_root or resolve_source_root()
@@ -847,11 +1064,13 @@ def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int
     seed_workspace(db, brand)
     authoring_seeded = seed_authoring(db, brand)
     planning_seeded = seed_planning_and_proof(db, brand)
+    intelligence_seeded = seed_intelligence(db, brand)
     return {
         "documents_imported": imported,
         "skills_imported": skills_imported,
         "authoring_seeded": authoring_seeded,
         "planning_seeded": planning_seeded,
+        "intelligence_seeded": intelligence_seeded,
     }
 
 
@@ -863,7 +1082,8 @@ def main() -> None:
         f"{result['documents_imported']} source documents and "
         f"{result['skills_imported']} skill definitions imported; "
         f"{result['authoring_seeded']} authoring workspace and "
-        f"{result['planning_seeded']} planning workspace seeded."
+        f"{result['planning_seeded']} planning workspace; "
+        f"{result['intelligence_seeded']} intelligence workspace seeded."
     )
 
 

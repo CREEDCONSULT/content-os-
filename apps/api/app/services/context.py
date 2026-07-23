@@ -11,6 +11,7 @@ from app.db.models import (
     BrandDocumentVersion,
     CanonicalStatus,
     ContextPack,
+    MemoryRecord,
 )
 
 MAX_DOCUMENT_CHARS = 4_000
@@ -88,6 +89,55 @@ def build_context_pack(
                     f"## {document.title}",
                     f"Classification: {classification}",
                     f"Source: {document.source_path}",
+                    excerpt,
+                ]
+            )
+        )
+
+    memory_records = list(
+        db.scalars(
+            select(MemoryRecord).where(
+                MemoryRecord.brand_id == brand_id,
+                MemoryRecord.sensitivity != "restricted",
+                MemoryRecord.sync_status != "conflict",
+            )
+        ).all()
+    )
+    memory_ranked = sorted(
+        memory_records,
+        key=lambda record: (
+            sum(2 for term in terms if term in f"{record.title} {record.content[:4000]}".lower()),
+            record.confidence,
+        ),
+        reverse=True,
+    )
+    for record in memory_ranked[:3]:
+        if remaining <= 0:
+            break
+        relevance = sum(
+            1 for term in terms if term in f"{record.title} {record.content[:4000]}".lower()
+        )
+        if terms and not relevance:
+            continue
+        excerpt = record.content[: min(2_500, remaining)]
+        remaining -= len(excerpt)
+        source_records.append(
+            {
+                "document_id": record.id,
+                "version_id": record.content_checksum,
+                "title": record.title,
+                "source_path": record.vault_path,
+                "classification": f"memory:{record.memory_type}",
+                "authority": record.canonical_status.value,
+                "checksum_sha256": record.content_checksum,
+            }
+        )
+        sections.append(
+            "\n".join(
+                [
+                    f"## Memory: {record.title}",
+                    f"Classification: {record.memory_type}",
+                    f"Source: {record.vault_path}",
                     excerpt,
                 ]
             )

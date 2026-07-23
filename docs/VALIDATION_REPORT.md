@@ -13,8 +13,8 @@ Content Lifecycle slice.
 | API lint | `npm run lint:api` | Passed |
 | Web type check | `npm run typecheck` | Passed |
 | Web tests | `npm run test:web` | 7 passed |
-| API tests | `npm run test:api` | 19 passed; 2 dependency deprecation warnings |
-| Production web build | `npm run build` | Passed; 17 static App Router routes generated |
+| API tests | `npm run test:api` | 24 passed; 2 dependency deprecation warnings |
+| Production web build | `npm run build` | Passed; 20 static App Router routes generated |
 | Complete code gate | `npm run check` | Passed |
 | Compose validation | `docker compose config --quiet` | Passed |
 | PostgreSQL migration drift | `docker compose exec -T api .venv/bin/alembic check` | Passed; no new upgrade operations |
@@ -139,3 +139,36 @@ Milestone 6 adds four API tests and four operator workspaces.
 The live smoke was read-only after seeding. The one production plan remains
 intentionally blocked with four disclosed blockers; the smoke did not manufacture a
 ready state or fabricate proof.
+
+## Memory, intelligence, Telegram, heartbeat, and analytics increment
+
+Milestones 7–11 add five API tests and three operator workspaces.
+
+| Check | Result |
+|---|---|
+| Vault initialization | Complete dedicated folder tree created under isolated persistent storage |
+| Database → vault | Canonical documents, approved scripts, and daily briefs exported atomically |
+| Vault → database | Founder Markdown imported; Inbox note created one linked Idea |
+| Conflict handling | Manual canonical edit preserved; sync event recorded conflict |
+| Context retrieval | Relevant non-restricted, non-conflicting memory joins canonical sources |
+| Creator safeguard | Protected identity separated; eight-word copying boundary passed |
+| Telegram security | Missing secret `401`; non-allowlisted sender `403`; duplicate update idempotent |
+| Telegram voice E2E | Signed/local transcript fixture created an Idea and retained Demo disclosure |
+| Heartbeat deduplication | Different keys on the same date returned one durable run and brief |
+| Heartbeat scheduler | Compose worker healthy; database settings and daily idempotency enforced |
+| CSV import | Two valid rows persisted while one invalid row was rejected with an exact error |
+| Insight safety | Import observation explicitly avoided causal claims |
+| Experiment | One variable and three control conditions persisted |
+| Migration cycle | `upgrade -> downgrade 2378e805851a -> upgrade -> check` passed |
+
+Live PostgreSQL smoke:
+
+- migration `4ca6a901f2f5` at head;
+- 54 Markdown records exported with zero conflicts;
+- manual heartbeat returned `partial`, two opportunities, and `$0.00` cost;
+- Telegram voice fixture created an Idea and remained marked Demo;
+- three creators, one benchmark, one metric, one insight, and one experiment loaded;
+- `/benchmarks`, `/intelligence`, and `/analytics` returned HTTP `200`.
+
+No external scraping, live Telegram message, paid call, public schedule, or publish
+action occurred.

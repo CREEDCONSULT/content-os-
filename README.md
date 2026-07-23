@@ -27,6 +27,13 @@ The first connected implementation milestone includes:
   mobile shoot checklists, and a server-enforced 100% readiness boundary;
 - checksummed original-asset ingestion, duplicate links, explicit rights states,
   and permission-aware proof-of-work records;
+- dedicated Markdown vault sync with canonical conflict preservation and contextual
+  retrieval;
+- creator watchlist and evidence-limited teardowns with explicit anti-copying
+  boundaries;
+- signed Telegram capture adapter plus a visibly labeled local fixture simulator;
+- idempotent daily heartbeat with a durable Compose scheduler and vault brief;
+- CSV analytics import, working insights, and controlled experiment ledger;
 - realistic August-December 2026 demo data, visibly labeled in the product.
 
 See [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for verified
@@ -75,3 +82,8 @@ and verification.
 - [`docs/CONTENT_AUTHORING.md`](docs/CONTENT_AUTHORING.md)
 - [`docs/CALENDAR_AND_PRODUCTION.md`](docs/CALENDAR_AND_PRODUCTION.md)
 - [`docs/ASSETS_AND_PROOF.md`](docs/ASSETS_AND_PROOF.md)
+- [`docs/MEMORY_AND_VAULT.md`](docs/MEMORY_AND_VAULT.md)
+- [`docs/CREATOR_INTELLIGENCE.md`](docs/CREATOR_INTELLIGENCE.md)
+- [`docs/TELEGRAM.md`](docs/TELEGRAM.md)
+- [`docs/HEARTBEAT.md`](docs/HEARTBEAT.md)
+- [`docs/ANALYTICS_AND_EXPERIMENTS.md`](docs/ANALYTICS_AND_EXPERIMENTS.md)

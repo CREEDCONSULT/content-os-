@@ -553,6 +553,221 @@ class ProofItem(Timestamped, Base):
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
+class MemoryRecord(Timestamped, Base):
+    __tablename__ = "memory_records"
+    __table_args__ = (UniqueConstraint("brand_id", "vault_path"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    memory_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical_status: Mapped[CanonicalStatus] = mapped_column(
+        Enum(CanonicalStatus, native_enum=False),
+        default=CanonicalStatus.WORKING,
+        index=True,
+    )
+    confidence: Mapped[float] = mapped_column(Float, default=0)
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    vault_path: Mapped[str] = mapped_column(String(800), nullable=False)
+    content_checksum: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    sensitivity: Mapped[str] = mapped_column(String(60), default="internal", index=True)
+    review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sync_status: Mapped[str] = mapped_column(String(60), default="synced", index=True)
+    embedding_status: Mapped[str] = mapped_column(String(60), default="disabled")
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class SyncEvent(Timestamped, Base):
+    __tablename__ = "sync_events"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    direction: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    record_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    record_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False), index=True)
+    vault_path: Mapped[str] = mapped_column(String(800), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    database_checksum: Mapped[str | None] = mapped_column(String(64))
+    vault_checksum: Mapped[str | None] = mapped_column(String(64))
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class Creator(Timestamped, Base):
+    __tablename__ = "creators"
+    __table_args__ = (UniqueConstraint("brand_id", "platform", "username"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    username: Mapped[str] = mapped_column(String(180), nullable=False)
+    platform: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    url: Mapped[str] = mapped_column(String(800), nullable=False)
+    category: Mapped[str] = mapped_column(String(120), nullable=False)
+    why_tracked: Mapped[str] = mapped_column(Text, nullable=False)
+    tier: Mapped[int] = mapped_column(Integer, default=3, index=True)
+    relevance_score: Mapped[float] = mapped_column(Float, default=0)
+    content_pillars: Mapped[list[str]] = mapped_column(JSON, default=list)
+    formats: Mapped[list[str]] = mapped_column(JSON, default=list)
+    voice: Mapped[str] = mapped_column(Text, nullable=False)
+    hook_style: Mapped[str] = mapped_column(Text, nullable=False)
+    production_style: Mapped[str] = mapped_column(Text, nullable=False)
+    audience: Mapped[str] = mapped_column(String(240), nullable=False)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    watch_status: Mapped[str] = mapped_column(String(40), default="active", index=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class BenchmarkContent(Timestamped, Base):
+    __tablename__ = "benchmark_contents"
+    __table_args__ = (UniqueConstraint("brand_id", "source_url"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    creator_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("creators.id"), index=True
+    )
+    source_url: Mapped[str] = mapped_column(String(1200), nullable=False)
+    platform: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(80), default="manual_url")
+    raw_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    transcript_excerpt: Mapped[str | None] = mapped_column(Text)
+    hook_analysis: Mapped[str] = mapped_column(Text, nullable=False)
+    structure_analysis: Mapped[str] = mapped_column(Text, nullable=False)
+    visual_analysis: Mapped[str] = mapped_column(Text, nullable=False)
+    editing_analysis: Mapped[str] = mapped_column(Text, nullable=False)
+    transferable_mechanics: Mapped[list[str]] = mapped_column(JSON, default=list)
+    protected_identity: Mapped[list[str]] = mapped_column(JSON, default=list)
+    mezie_adaptations: Mapped[list[str]] = mapped_column(JSON, default=list)
+    pattern_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    limitations: Mapped[list[str]] = mapped_column(JSON, default=list)
+    evidence_level: Mapped[str] = mapped_column(String(60), default="metadata_only", index=True)
+    status: Mapped[str] = mapped_column(String(60), default="analyzed", index=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class TelegramMessage(Timestamped, Base):
+    __tablename__ = "telegram_messages"
+    __table_args__ = (UniqueConstraint("update_id"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    update_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    sender_id: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    message_id: Mapped[str | None] = mapped_column(String(120))
+    message_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    text: Mapped[str | None] = mapped_column(Text)
+    transcript: Mapped[str | None] = mapped_column(Text)
+    source_reference: Mapped[str | None] = mapped_column(String(800))
+    classification: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    created_record_type: Mapped[str | None] = mapped_column(String(80))
+    created_record_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False))
+    response_text: Mapped[str] = mapped_column(Text, nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class HeartbeatSetting(Timestamped, Base):
+    __tablename__ = "heartbeat_settings"
+
+    brand_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("brands.id"), unique=True, index=True
+    )
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    schedule_hour: Mapped[int] = mapped_column(Integer, default=7)
+    timezone: Mapped[str] = mapped_column(String(80), default="America/Toronto")
+    mode: Mapped[str] = mapped_column(String(40), default="lean")
+    max_sources: Mapped[int] = mapped_column(Integer, default=10)
+    max_creators: Mapped[int] = mapped_column(Integer, default=5)
+    telegram_summary_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class HeartbeatRun(Timestamped, Base):
+    __tablename__ = "heartbeat_runs"
+    __table_args__ = (
+        UniqueConstraint("brand_id", "run_date"),
+        UniqueConstraint("idempotency_key"),
+    )
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    run_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    trigger: Mapped[str] = mapped_column(String(40), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    source_coverage: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    model_alias: Mapped[str] = mapped_column(String(120), nullable=False)
+    tools_used: Mapped[list[str]] = mapped_column(JSON, default=list)
+    model_cost: Mapped[float] = mapped_column(Float, default=0)
+    tool_cost: Mapped[float] = mapped_column(Float, default=0)
+    context_pack_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("context_packs.id"), index=True
+    )
+    records_changed: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    errors: Mapped[list[str]] = mapped_column(JSON, default=list)
+    confidence: Mapped[float] = mapped_column(Float, default=0)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class DailyBrief(Timestamped, Base):
+    __tablename__ = "daily_briefs"
+    __table_args__ = (UniqueConstraint("brand_id", "brief_date"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    heartbeat_run_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("heartbeat_runs.id"), unique=True, index=True
+    )
+    brief_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    what_changed: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    creator_watch: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    trend_signals: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    content_opportunities: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    risks_noise: Mapped[list[str]] = mapped_column(JSON, default=list)
+    recommended_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    recommended_action: Mapped[str] = mapped_column(Text, nullable=False)
+    coverage_gaps: Mapped[list[str]] = mapped_column(JSON, default=list)
+    vault_path: Mapped[str | None] = mapped_column(String(800))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class Insight(Timestamped, Base):
+    __tablename__ = "insights"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_item_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), index=True
+    )
+    classification: Mapped[str] = mapped_column(String(80), default="raw_observation", index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    observation: Mapped[str] = mapped_column(Text, nullable=False)
+    hypothesis: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    confidence: Mapped[float] = mapped_column(Float, default=0)
+    status: Mapped[str] = mapped_column(String(60), default="working", index=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class Experiment(Timestamped, Base):
+    __tablename__ = "experiments"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    hypothesis: Mapped[str] = mapped_column(Text, nullable=False)
+    variable: Mapped[str] = mapped_column(String(240), nullable=False)
+    control_conditions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    platform: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    content_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    expected_outcome: Mapped[str] = mapped_column(Text, nullable=False)
+    success_metric: Mapped[str] = mapped_column(String(240), nullable=False)
+    measurement_start: Mapped[date | None] = mapped_column(Date)
+    measurement_end: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(60), default="planned", index=True)
+    result: Mapped[str | None] = mapped_column(Text)
+    interpretation: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Float, default=0)
+    decision: Mapped[str | None] = mapped_column(String(120))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
 class PipelineEvent(Timestamped, Base):
     __tablename__ = "pipeline_events"
 
