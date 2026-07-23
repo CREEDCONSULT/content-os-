@@ -10,13 +10,17 @@ from app.core.config import get_settings
 from app.routers import (
     agent,
     approvals,
+    assets,
     auth,
     brand,
+    calendar,
     content,
     dashboard,
     health,
     ideas,
     integrations,
+    production,
+    proof,
     studio,
 )
 
@@ -56,3 +60,7 @@ app.include_router(approvals.router)
 app.include_router(integrations.router)
 app.include_router(agent.router)
 app.include_router(studio.router)
+app.include_router(calendar.router)
+app.include_router(production.router)
+app.include_router(assets.router)
+app.include_router(proof.router)

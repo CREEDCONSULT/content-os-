@@ -26,9 +26,7 @@ def _terms(value: str) -> set[str]:
 
 
 def _score(document: BrandDocument, terms: set[str]) -> tuple[int, str]:
-    searchable = " ".join(
-        [document.title, document.document_type, *document.tags]
-    ).lower()
+    searchable = " ".join([document.title, document.document_type, *document.tags]).lower()
     score = sum(3 for term in terms if term in searchable)
     if document.document_type == "positioning":
         score += 5
@@ -70,8 +68,7 @@ def build_context_pack(
         remaining -= len(excerpt)
         classification = (
             "approved_strategy"
-            if document.document_type
-            in {"positioning", "brand-execution", "brand-record", "skill"}
+            if document.document_type in {"positioning", "brand-execution", "brand-record", "skill"}
             else "verified_source_record"
         )
         source_records.append(

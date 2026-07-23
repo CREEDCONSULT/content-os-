@@ -102,6 +102,29 @@ class ReviewStatus(StrEnum):
     BLOCKED = "blocked"
 
 
+class ProductionStatus(StrEnum):
+    DRAFT = "draft"
+    BLOCKED = "blocked"
+    READY = "ready"
+    IN_PROGRESS = "in_progress"
+    COMPLETE = "complete"
+
+
+class RightsStatus(StrEnum):
+    UNKNOWN = "unknown"
+    OWNED = "owned"
+    LICENSED = "licensed"
+    RESTRICTED = "restricted"
+
+
+class ProofStatus(StrEnum):
+    DRAFT = "draft"
+    EVIDENCE_NEEDED = "evidence_needed"
+    VERIFIED = "verified"
+    APPROVED = "approved"
+    ARCHIVED = "archived"
+
+
 class Timestamped:
     id: Mapped[str] = mapped_column(
         Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -355,15 +378,179 @@ class FactCheck(Timestamped, Base):
     unresolved_claims: Mapped[list[str]] = mapped_column(JSON, default=list)
     verified_text: Mapped[str] = mapped_column(Text, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, default=0)
-    financial_classification: Mapped[str] = mapped_column(
-        String(80), default="not_financial"
-    )
+    financial_classification: Mapped[str] = mapped_column(String(80), default="not_financial")
     blocked_claims: Mapped[list[str]] = mapped_column(JSON, default=list)
     risk_disclosures: Mapped[list[str]] = mapped_column(JSON, default=list)
     reviewed_by: Mapped[str] = mapped_column(String(120), nullable=False)
     reviewed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
+
+
+class CapacityPlan(Timestamped, Base):
+    __tablename__ = "capacity_plans"
+    __table_args__ = (UniqueConstraint("brand_id", "week_start"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    week_start: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    available_hours: Mapped[float] = mapped_column(Float, default=10)
+    max_shoots: Mapped[int] = mapped_column(Integer, default=2)
+    max_edits: Mapped[int] = mapped_column(Integer, default=3)
+    fallback_plan: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class CalendarEvent(Timestamped, Base):
+    __tablename__ = "calendar_events"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_item_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    timezone: Mapped[str] = mapped_column(String(80), default="America/Toronto")
+    status: Mapped[str] = mapped_column(String(40), default="planned", index=True)
+    capacity_units: Mapped[float] = mapped_column(Float, default=1)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ProductionPlan(Timestamped, Base):
+    __tablename__ = "production_plans"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_item_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), unique=True, index=True
+    )
+    script_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("scripts.id"), unique=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    creative_treatment: Mapped[str] = mapped_column(Text, nullable=False)
+    location: Mapped[str | None] = mapped_column(String(240))
+    equipment: Mapped[list[str]] = mapped_column(JSON, default=list)
+    wardrobe: Mapped[list[str]] = mapped_column(JSON, default=list)
+    props: Mapped[list[str]] = mapped_column(JSON, default=list)
+    lighting_plan: Mapped[str] = mapped_column(Text, nullable=False)
+    music_direction: Mapped[str] = mapped_column(Text, nullable=False)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    estimated_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    status: Mapped[ProductionStatus] = mapped_column(
+        Enum(ProductionStatus, native_enum=False),
+        default=ProductionStatus.DRAFT,
+        index=True,
+    )
+    readiness_score: Mapped[float] = mapped_column(Float, default=0)
+    blockers: Mapped[list[str]] = mapped_column(JSON, default=list)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ProductionScene(Timestamped, Base):
+    __tablename__ = "production_scenes"
+    __table_args__ = (UniqueConstraint("production_plan_id", "sequence"),)
+
+    production_plan_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("production_plans.id"), index=True
+    )
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(500), nullable=False)
+    dialogue: Mapped[str] = mapped_column(Text, nullable=False)
+    duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class ProductionShot(Timestamped, Base):
+    __tablename__ = "production_shots"
+    __table_args__ = (UniqueConstraint("production_scene_id", "sequence"),)
+
+    production_scene_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("production_scenes.id"), index=True
+    )
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    framing: Mapped[str] = mapped_column(String(120), nullable=False)
+    camera_angle: Mapped[str] = mapped_column(String(120), nullable=False)
+    movement: Mapped[str] = mapped_column(String(120), nullable=False)
+    lighting: Mapped[str] = mapped_column(String(240), nullable=False)
+    instructions: Mapped[str] = mapped_column(Text, nullable=False)
+    is_b_roll: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(40), default="planned", index=True)
+
+
+class ProductionChecklistItem(Timestamped, Base):
+    __tablename__ = "production_checklist_items"
+
+    production_plan_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("production_plans.id"), index=True
+    )
+    phase: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(240), nullable=False)
+    is_critical: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_complete: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Asset(Timestamped, Base):
+    __tablename__ = "assets"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_item_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), index=True
+    )
+    production_plan_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("production_plans.id"), index=True
+    )
+    filename: Mapped[str] = mapped_column(String(240), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(800), unique=True, nullable=False)
+    media_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    mime_type: Mapped[str] = mapped_column(String(160), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    people: Mapped[list[str]] = mapped_column(JSON, default=list)
+    location: Mapped[str | None] = mapped_column(String(240))
+    orientation: Mapped[str | None] = mapped_column(String(40))
+    quality_score: Mapped[float] = mapped_column(Float, default=0)
+    rights_status: Mapped[RightsStatus] = mapped_column(
+        Enum(RightsStatus, native_enum=False),
+        default=RightsStatus.UNKNOWN,
+        index=True,
+    )
+    rights_notes: Mapped[str | None] = mapped_column(Text)
+    original_preserved: Mapped[bool] = mapped_column(Boolean, default=True)
+    duplicate_of_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ProofItem(Timestamped, Base):
+    __tablename__ = "proof_items"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    content_item_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("content_items.id"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    proof_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    credibility_gap: Mapped[str] = mapped_column(Text, nullable=False)
+    context: Mapped[str] = mapped_column(Text, nullable=False)
+    constraints: Mapped[str] = mapped_column(Text, nullable=False)
+    process: Mapped[str] = mapped_column(Text, nullable=False)
+    output: Mapped[str] = mapped_column(Text, nullable=False)
+    result: Mapped[str] = mapped_column(Text, nullable=False)
+    lessons: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_links: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    asset_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    permission_status: Mapped[str] = mapped_column(String(60), default="not_required", index=True)
+    sensitivity: Mapped[str] = mapped_column(String(60), default="internal")
+    status: Mapped[ProofStatus] = mapped_column(
+        Enum(ProofStatus, native_enum=False),
+        default=ProofStatus.EVIDENCE_NEEDED,
+        index=True,
+    )
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
 class PipelineEvent(Timestamped, Base):

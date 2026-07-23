@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     source_documents_path: str | None = None
     object_storage_path: str = "./storage"
     brandos_vault_path: str = "./vault"
+    max_upload_mb: int = 250
 
     auth_mode: str = "local"
     auth_username: str = "mezie"

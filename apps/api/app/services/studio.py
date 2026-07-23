@@ -174,9 +174,7 @@ def _score_hook(text: str, index: int, selected: bool) -> dict[str, float]:
     curiosity = min(9.7, 6.4 + (1.1 if "?" in text else 0) + (index % 3) * 0.45)
     specificity = min(9.6, 6.3 + sum(char.isdigit() for char in text) * 0.5)
     brand_fit = (
-        9.1
-        if any(term in text.lower() for term in ("build", "system", "evidence"))
-        else 8.1
+        9.1 if any(term in text.lower() for term in ("build", "system", "evidence")) else 8.1
     )
     audience_fit = 8.8
     originality = max(6.5, 9.2 - index * 0.22)
@@ -190,15 +188,7 @@ def _score_hook(text: str, index: int, selected: bool) -> dict[str, float]:
         "audience_fit_score": round(audience_fit, 2),
         "originality_score": round(originality, 2),
         "total_score": round(
-            (
-                clarity
-                + curiosity
-                + specificity
-                + brand_fit
-                + audience_fit
-                + originality
-            )
-            / 6,
+            (clarity + curiosity + specificity + brand_fit + audience_fit + originality) / 6,
             2,
         ),
     }
@@ -238,9 +228,7 @@ def add_script_version(
             detail="This script version already exists.",
         )
     current = (
-        db.get(ScriptVersion, script.current_version_id)
-        if script.current_version_id
-        else None
+        db.get(ScriptVersion, script.current_version_id) if script.current_version_id else None
     )
     if current:
         current.is_active = False
@@ -342,9 +330,7 @@ def create_script(
 
 def script_view(db: Session, script: Script) -> ScriptView:
     version = (
-        db.get(ScriptVersion, script.current_version_id)
-        if script.current_version_id
-        else None
+        db.get(ScriptVersion, script.current_version_id) if script.current_version_id else None
     )
     hooks = (
         list(
@@ -390,9 +376,7 @@ def review_script(
     user: UserPrincipal,
 ) -> FactCheck:
     version = (
-        db.get(ScriptVersion, script.current_version_id)
-        if script.current_version_id
-        else None
+        db.get(ScriptVersion, script.current_version_id) if script.current_version_id else None
     )
     if not version:
         raise HTTPException(
@@ -401,9 +385,7 @@ def review_script(
         )
     corpus = f"{version.body_text}\n{payload.verified_text}".lower()
     blocked_claims = [
-        label
-        for label, pattern in BLOCKED_FINANCIAL_PATTERNS.items()
-        if re.search(pattern, corpus)
+        label for label, pattern in BLOCKED_FINANCIAL_PATTERNS.items() if re.search(pattern, corpus)
     ]
     financial = any(term in corpus for term in FINANCIAL_TERMS)
     missing_sources = bool(payload.claim_table) and not payload.sources
@@ -412,9 +394,7 @@ def review_script(
         if blocked_claims or payload.unresolved_claims or missing_sources
         else ReviewStatus.VERIFIED
     )
-    existing = db.scalar(
-        select(FactCheck).where(FactCheck.script_version_id == version.id)
-    )
+    existing = db.scalar(select(FactCheck).where(FactCheck.script_version_id == version.id))
     fact_check = existing or FactCheck(
         script_version_id=version.id,
         verified_text=payload.verified_text,
@@ -459,11 +439,7 @@ def review_script(
             else BriefStatus.PROOF_NEEDED
         )
     script.financial_risk = (
-        RiskLevel.HIGH
-        if blocked_claims
-        else RiskLevel.MEDIUM
-        if financial
-        else RiskLevel.LOW
+        RiskLevel.HIGH if blocked_claims else RiskLevel.MEDIUM if financial else RiskLevel.LOW
     )
     db.commit()
     db.refresh(fact_check)

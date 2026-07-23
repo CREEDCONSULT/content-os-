@@ -14,6 +14,7 @@ Idea
   -> manual fact and financial-safety review
   -> pending backend approval
   -> approved script and content item
+  -> blocker-free production plan at 100%
   -> ready to shoot
 ```
 
@@ -80,8 +81,9 @@ Approval:
 - advances the linked content item from `review` to `approved`.
 
 Rejection returns the linked content item to `script` for revision. A real,
-non-demo item cannot enter `approved` or `ready_to_shoot` through the generic
-transition endpoint without final script approval.
+non-demo item cannot enter `approved` without final script approval, and cannot
+enter `ready_to_shoot` until a production plan has no blockers and reaches 100%
+readiness.
 
 Public publishing remains separately gated and is not implemented as an external
 platform action.
@@ -104,4 +106,5 @@ platform action.
   not automated.
 - Hook scores are heuristic, not trained performance predictions.
 - Rich-text block editing and collaborative comments are deferred.
-- The production workflow starts after approval and is covered by Milestone 6.
+- Production is connected after approval; external calendar and platform sync are
+  deferred.

@@ -2,9 +2,12 @@ import type {
   AgentRun,
   AgentRunList,
   Approval,
+  Asset,
   AuthUser,
   BrandDocument,
   BrandDocumentDetail,
+  CalendarEvent,
+  CapacityPlan,
   ContentItem,
   ContentBrief,
   ContentList,
@@ -13,6 +16,8 @@ import type {
   IdeaList,
   Integration,
   PipelineStatus,
+  ProductionPlan,
+  ProofItem,
   SkillDefinition,
   Script,
 } from "@/lib/contracts";
@@ -178,4 +183,93 @@ export const api = {
       `/api/v1/studio/scripts/${scriptId}/submit`,
       { method: "POST" },
     ),
+  capacities: () => request<CapacityPlan[]>("/api/v1/calendar/capacity"),
+  setCapacity: (payload: {
+    week_start: string;
+    available_hours: number;
+    max_shoots: number;
+    max_edits: number;
+    fallback_plan: string;
+    notes?: string;
+  }) =>
+    request<CapacityPlan>("/api/v1/calendar/capacity", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  calendarEvents: () => request<CalendarEvent[]>("/api/v1/calendar/events"),
+  createCalendarEvent: (payload: {
+    title: string;
+    event_type: CalendarEvent["event_type"];
+    start_at: string;
+    end_at: string;
+    capacity_units: number;
+    notes?: string;
+  }) =>
+    request<CalendarEvent>("/api/v1/calendar/events", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  productionPlans: () => request<ProductionPlan[]>("/api/v1/production/plans"),
+  createProductionPlan: (scriptId: string) =>
+    request<ProductionPlan>(`/api/v1/production/plans/from-script/${scriptId}`, {
+      method: "POST",
+    }),
+  updateProductionPlan: (
+    planId: string,
+    payload: {
+      location?: string;
+      scheduled_at?: string;
+      equipment?: string[];
+      wardrobe?: string[];
+      props?: string[];
+      estimated_minutes?: number;
+    },
+  ) =>
+    request<ProductionPlan>(`/api/v1/production/plans/${planId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  setChecklistItem: (itemId: string, isComplete: boolean) =>
+    request<ProductionPlan>(`/api/v1/production/checklist/${itemId}`, {
+      method: "POST",
+      body: JSON.stringify({ is_complete: isComplete }),
+    }),
+  assets: () => request<Asset[]>("/api/v1/assets"),
+  uploadAsset: async (formData: FormData) => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    if (!response.ok) {
+      let message = `Upload failed (${response.status})`;
+      try {
+        const body = (await response.json()) as { detail?: string };
+        if (body.detail) message = body.detail;
+      } catch {
+        // Retain the status fallback for non-JSON errors.
+      }
+      throw new ApiError(message, response.status);
+    }
+    return (await response.json()) as Asset;
+  },
+  proofItems: () => request<ProofItem[]>("/api/v1/proof"),
+  createProofItem: (payload: {
+    title: string;
+    proof_type: string;
+    credibility_gap: string;
+    context: string;
+    constraints: string;
+    process: string;
+    output: string;
+    result: string;
+    lessons: string;
+    evidence_links: { label: string; url: string }[];
+    permission_status: string;
+    sensitivity: string;
+  }) =>
+    request<ProofItem>("/api/v1/proof", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };

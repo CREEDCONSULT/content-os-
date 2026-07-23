@@ -76,14 +76,10 @@ def test_idea_to_approved_script_and_production_gate(
     )
     assert fact_check.status_code == 200
     assert fact_check.json()["status"] == "verified"
-    refreshed_brief = authenticated_client.get(
-        f"/api/v1/studio/briefs/{brief['id']}"
-    ).json()
+    refreshed_brief = authenticated_client.get(f"/api/v1/studio/briefs/{brief['id']}").json()
     assert refreshed_brief["evidence_status"] == "verified"
 
-    submitted = authenticated_client.post(
-        f"/api/v1/studio/scripts/{script['id']}/submit"
-    )
+    submitted = authenticated_client.post(f"/api/v1/studio/scripts/{script['id']}/submit")
     assert submitted.status_code == 200
     submission = submitted.json()
     assert submission["script"]["status"] == "review"
@@ -101,9 +97,7 @@ def test_idea_to_approved_script_and_production_gate(
         json={"decision": "approved", "notes": "Safe internal script approved."},
     )
     assert approved.status_code == 200
-    detail = authenticated_client.get(
-        f"/api/v1/studio/scripts/{script['id']}"
-    ).json()
+    detail = authenticated_client.get(f"/api/v1/studio/scripts/{script['id']}").json()
     assert detail["status"] == "approved"
     assert detail["approval_status"] == "approved"
 
@@ -113,7 +107,8 @@ def test_idea_to_approved_script_and_production_gate(
         f"/api/v1/content/{content_id}/transition",
         json={"to_status": "ready_to_shoot"},
     )
-    assert ready.status_code == 200
+    assert ready.status_code == 403
+    assert "production plan" in ready.json()["detail"].lower()
 
 
 def test_financial_signal_is_blocked_and_new_version_resets_review(
@@ -144,9 +139,7 @@ def test_financial_signal_is_blocked_and_new_version_resets_review(
     assert "guaranteed return" in blocked["blocked_claims"]
     assert "direct buy signal" in blocked["blocked_claims"]
 
-    rejected_submit = authenticated_client.post(
-        f"/api/v1/studio/scripts/{script['id']}/submit"
-    )
+    rejected_submit = authenticated_client.post(f"/api/v1/studio/scripts/{script['id']}/submit")
     assert rejected_submit.status_code == 409
 
     revised = authenticated_client.post(
@@ -185,9 +178,7 @@ def test_financial_signal_is_blocked_and_new_version_resets_review(
     assert safe["financial_classification"] == "educational_financial_content"
     assert safe["risk_disclosures"]
 
-    versions = authenticated_client.get(
-        f"/api/v1/studio/scripts/{script['id']}/versions"
-    ).json()
+    versions = authenticated_client.get(f"/api/v1/studio/scripts/{script['id']}/versions").json()
     assert [item["version_number"] for item in versions] == [2, 1]
     assert versions[0]["is_active"] is True
     assert versions[1]["is_active"] is False

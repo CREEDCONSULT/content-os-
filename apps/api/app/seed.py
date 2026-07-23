@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import select
@@ -13,12 +13,15 @@ from app.core.config import get_settings
 from app.db.models import (
     AgentRun,
     ApprovalStatus,
+    Asset,
     AuditEvent,
     Brand,
     BrandDocument,
     BrandDocumentVersion,
     BriefStatus,
+    CalendarEvent,
     CanonicalStatus,
+    CapacityPlan,
     ContentBrief,
     ContentItem,
     HookOption,
@@ -26,7 +29,15 @@ from app.db.models import (
     IdeaStatus,
     MetricSnapshot,
     PipelineStatus,
+    ProductionChecklistItem,
+    ProductionPlan,
+    ProductionScene,
+    ProductionShot,
+    ProductionStatus,
+    ProofItem,
+    ProofStatus,
     ReviewStatus,
+    RightsStatus,
     Script,
     ScriptStatus,
     ScriptVersion,
@@ -240,9 +251,7 @@ def import_skill_definitions(db: Session, source_root: Path) -> int:
             memory_policy=memory_policy,
             approval_policy=approval_policy,
             failure_behavior=failure_behavior,
-            model_profile=(
-                "brand_quality_model" if slug in high_reasoning else "brand_fast_model"
-            ),
+            model_profile=("brand_quality_model" if slug in high_reasoning else "brand_fast_model"),
             timeout_seconds=180 if slug in high_reasoning else 120,
             cost_class="medium" if slug in high_reasoning else "low",
             source_path=f"docs/source/{path.relative_to(source_root).as_posix()}",
@@ -609,6 +618,227 @@ def seed_authoring(db: Session, brand: Brand) -> int:
     return 1
 
 
+def seed_planning_and_proof(db: Session, brand: Brand) -> int:
+    if db.scalar(select(CapacityPlan.id).where(CapacityPlan.brand_id == brand.id).limit(1)):
+        return 0
+
+    capacity_specs = [
+        (
+            date(2026, 8, 3),
+            12,
+            2,
+            3,
+            "Publish a verified founder build note if the planned shoot slips.",
+            "DEMO · August launch rhythm",
+        ),
+        (
+            date(2026, 10, 5),
+            10,
+            1,
+            2,
+            "Use a low-production Builder Walk from the verified proof backlog.",
+            "DEMO · October sustainable rhythm",
+        ),
+        (
+            date(2026, 12, 7),
+            8,
+            1,
+            2,
+            "Publish the monthly evidence review without adding a new shoot.",
+            "DEMO · December reduced capacity",
+        ),
+    ]
+    for week_start, hours, shoots, edits, fallback, notes in capacity_specs:
+        db.add(
+            CapacityPlan(
+                brand_id=brand.id,
+                week_start=week_start,
+                available_hours=hours,
+                max_shoots=shoots,
+                max_edits=edits,
+                fallback_plan=fallback,
+                notes=notes,
+                is_demo=True,
+            )
+        )
+
+    calendar_specs = [
+        (
+            "DEMO · August BrandOS founder shoot",
+            "shoot",
+            datetime(2026, 8, 4, 14, tzinfo=UTC),
+            2.5,
+        ),
+        (
+            "DEMO · October proof-led editorial review",
+            "review",
+            datetime(2026, 10, 7, 15, tzinfo=UTC),
+            1.5,
+        ),
+        (
+            "DEMO · December Becoming the Evidence edit",
+            "edit",
+            datetime(2026, 12, 9, 14, tzinfo=UTC),
+            2,
+        ),
+    ]
+    for title, event_type, start_at, capacity_units in calendar_specs:
+        db.add(
+            CalendarEvent(
+                brand_id=brand.id,
+                title=title,
+                event_type=event_type,
+                start_at=start_at,
+                end_at=start_at + timedelta(hours=capacity_units),
+                timezone="America/Toronto",
+                capacity_units=capacity_units,
+                notes="Visibly labeled seeded demonstration record.",
+                is_demo=True,
+            )
+        )
+
+    script = db.scalar(
+        select(Script).where(
+            Script.brand_id == brand.id,
+            Script.title == "Building my personal Brand OS",
+        )
+    )
+    if script:
+        plan = ProductionPlan(
+            brand_id=brand.id,
+            content_item_id=script.content_item_id,
+            script_id=script.id,
+            title="DEMO · Building BrandOS founder note",
+            creative_treatment=(
+                "Phone-first direct-to-camera founder note with restrained interface evidence."
+            ),
+            equipment=["Smartphone", "Tripod", "Lavalier microphone"],
+            wardrobe=["Solid navy layer"],
+            props=["Laptop showing the local BrandOS workspace"],
+            lighting_plan="Soft window key with warm practical background.",
+            music_direction="No music during the proof-led dialogue.",
+            estimated_minutes=60,
+            status=ProductionStatus.BLOCKED,
+            readiness_score=10,
+            blockers=[
+                "Final script approval is missing",
+                "Confirm location",
+                "Schedule the shoot",
+                "Complete critical checklist",
+            ],
+            is_demo=True,
+        )
+        db.add(plan)
+        db.flush()
+        scene = ProductionScene(
+            production_plan_id=plan.id,
+            sequence=1,
+            title="DEMO · System before motivation",
+            purpose="Make the operating-system argument tangible.",
+            dialogue=("Consistency is not a personality trait. It is a system design problem."),
+            duration_seconds=20,
+        )
+        db.add(scene)
+        db.flush()
+        db.add_all(
+            [
+                ProductionShot(
+                    production_scene_id=scene.id,
+                    sequence=1,
+                    framing="Medium close-up",
+                    camera_angle="Eye level",
+                    movement="Locked",
+                    lighting="Soft window key",
+                    instructions="Deliver the approved hook directly to camera.",
+                    is_b_roll=False,
+                ),
+                ProductionShot(
+                    production_scene_id=scene.id,
+                    sequence=2,
+                    framing="Interface detail",
+                    camera_angle="Over shoulder",
+                    movement="Slow push",
+                    lighting="Match display exposure",
+                    instructions="Capture the local workflow without exposing secrets.",
+                    is_b_roll=True,
+                ),
+            ]
+        )
+        db.add_all(
+            [
+                ProductionChecklistItem(
+                    production_plan_id=plan.id,
+                    phase="pre_shoot",
+                    label="Final script approval recorded",
+                    is_critical=True,
+                    is_complete=False,
+                ),
+                ProductionChecklistItem(
+                    production_plan_id=plan.id,
+                    phase="pre_shoot",
+                    label="Location and audio conditions confirmed",
+                    is_critical=True,
+                    is_complete=False,
+                ),
+                ProductionChecklistItem(
+                    production_plan_id=plan.id,
+                    phase="post_shoot",
+                    label="Source files copied to two locations",
+                    is_critical=True,
+                    is_complete=False,
+                ),
+            ]
+        )
+
+        demo_bytes = b"DEMO metadata record; no fabricated media file."
+        asset = Asset(
+            brand_id=brand.id,
+            content_item_id=script.content_item_id,
+            production_plan_id=plan.id,
+            filename="DEMO-brandos-shot-reference.txt",
+            storage_key="demo/assets/brandos-shot-reference.txt",
+            media_type="document",
+            mime_type="text/plain",
+            size_bytes=len(demo_bytes),
+            checksum_sha256=hashlib.sha256(demo_bytes).hexdigest(),
+            tags=["demo", "production", "reference"],
+            rights_status=RightsStatus.UNKNOWN,
+            rights_notes="DEMO metadata only; rights intentionally unverified.",
+            original_preserved=False,
+            is_demo=True,
+        )
+        db.add(asset)
+
+    db.add(
+        ProofItem(
+            brand_id=brand.id,
+            title="DEMO · Governed BrandOS foundation",
+            proof_type="build_log",
+            credibility_gap="Can brand operations move from documents into governed records?",
+            context="A local-first MVP needed durable provenance and approval boundaries.",
+            constraints="No public launch, no fabricated live integrations, and no hidden writes.",
+            process=(
+                "Imported source documents and built the lifecycle through production planning."
+            ),
+            output="A connected command center, authoring studio, and readiness workflow.",
+            result="DEMO assertion only; live validation is recorded separately in project docs.",
+            lessons="Operational truth requires durable evidence and visibly labeled examples.",
+            evidence_links=[
+                {
+                    "label": "DEMO · local validation report",
+                    "url": "docs/VALIDATION_REPORT.md",
+                }
+            ],
+            permission_status="not_required",
+            sensitivity="internal",
+            status=ProofStatus.VERIFIED,
+            is_demo=True,
+        )
+    )
+    db.commit()
+    return 1
+
+
 def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int]:
     brand = seed_brand(db)
     resolved_source_root = source_root or resolve_source_root()
@@ -616,10 +846,12 @@ def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int
     skills_imported = import_skill_definitions(db, resolved_source_root)
     seed_workspace(db, brand)
     authoring_seeded = seed_authoring(db, brand)
+    planning_seeded = seed_planning_and_proof(db, brand)
     return {
         "documents_imported": imported,
         "skills_imported": skills_imported,
         "authoring_seeded": authoring_seeded,
+        "planning_seeded": planning_seeded,
     }
 
 
@@ -630,7 +862,8 @@ def main() -> None:
         "Seed complete: "
         f"{result['documents_imported']} source documents and "
         f"{result['skills_imported']} skill definitions imported; "
-        f"{result['authoring_seeded']} authoring workspace seeded."
+        f"{result['authoring_seeded']} authoring workspace and "
+        f"{result['planning_seeded']} planning workspace seeded."
     )
 
 

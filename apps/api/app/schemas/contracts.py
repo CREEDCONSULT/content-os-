@@ -11,7 +11,10 @@ from app.db.models import (
     CanonicalStatus,
     IdeaStatus,
     PipelineStatus,
+    ProductionStatus,
+    ProofStatus,
     ReviewStatus,
+    RightsStatus,
     RiskLevel,
     ScriptStatus,
 )
@@ -508,3 +511,184 @@ class ScriptView(ORMModel):
 class ScriptApprovalResult(BaseModel):
     script: ScriptView
     approval_id: str
+
+
+class CapacityPlanCreate(BaseModel):
+    week_start: date
+    available_hours: float = Field(default=10, ge=1, le=168)
+    max_shoots: int = Field(default=2, ge=0, le=50)
+    max_edits: int = Field(default=3, ge=0, le=50)
+    fallback_plan: str = Field(
+        default="Publish one low-production proof note if the planned shoot slips.",
+        min_length=10,
+        max_length=2000,
+    )
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class CapacityPlanView(ORMModel):
+    id: str
+    week_start: date
+    available_hours: float
+    max_shoots: int
+    max_edits: int
+    fallback_plan: str
+    notes: str | None
+    is_demo: bool
+
+
+class CalendarEventCreate(BaseModel):
+    content_item_id: str | None = None
+    title: str = Field(min_length=3, max_length=240)
+    event_type: str = Field(pattern="^(research|write|review|shoot|edit|editorial_publish)$")
+    start_at: datetime
+    end_at: datetime
+    timezone: str = Field(default="America/Toronto", max_length=80)
+    capacity_units: float = Field(default=1, gt=0, le=24)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class CalendarEventView(ORMModel):
+    id: str
+    content_item_id: str | None
+    title: str
+    event_type: str
+    start_at: datetime
+    end_at: datetime
+    timezone: str
+    status: str
+    capacity_units: float
+    notes: str | None
+    is_demo: bool
+    created_at: datetime
+
+
+class ProductionPlanUpdate(BaseModel):
+    location: str | None = Field(default=None, max_length=240)
+    scheduled_at: datetime | None = None
+    equipment: list[str] | None = Field(default=None, max_length=50)
+    wardrobe: list[str] | None = Field(default=None, max_length=50)
+    props: list[str] | None = Field(default=None, max_length=50)
+    estimated_minutes: int | None = Field(default=None, ge=10, le=1440)
+
+
+class ProductionSceneView(ORMModel):
+    id: str
+    sequence: int
+    title: str
+    purpose: str
+    dialogue: str
+    duration_seconds: int
+
+
+class ProductionShotView(ORMModel):
+    id: str
+    production_scene_id: str
+    sequence: int
+    framing: str
+    camera_angle: str
+    movement: str
+    lighting: str
+    instructions: str
+    is_b_roll: bool
+    status: str
+
+
+class ChecklistItemView(ORMModel):
+    id: str
+    phase: str
+    label: str
+    is_critical: bool
+    is_complete: bool
+    completed_at: datetime | None
+
+
+class ChecklistToggle(BaseModel):
+    is_complete: bool
+
+
+class ProductionPlanView(ORMModel):
+    id: str
+    content_item_id: str
+    script_id: str
+    title: str
+    creative_treatment: str
+    location: str | None
+    equipment: list[str]
+    wardrobe: list[str]
+    props: list[str]
+    lighting_plan: str
+    music_direction: str
+    scheduled_at: datetime | None
+    estimated_minutes: int
+    status: ProductionStatus
+    readiness_score: float
+    blockers: list[str]
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+    scenes: list[ProductionSceneView] = Field(default_factory=list)
+    shots: list[ProductionShotView] = Field(default_factory=list)
+    checklist: list[ChecklistItemView] = Field(default_factory=list)
+
+
+class AssetView(ORMModel):
+    id: str
+    content_item_id: str | None
+    production_plan_id: str | None
+    filename: str
+    storage_key: str
+    media_type: str
+    mime_type: str
+    size_bytes: int
+    checksum_sha256: str
+    tags: list[str]
+    people: list[str]
+    location: str | None
+    orientation: str | None
+    quality_score: float
+    rights_status: RightsStatus
+    rights_notes: str | None
+    original_preserved: bool
+    duplicate_of_id: str | None
+    is_demo: bool
+    created_at: datetime
+
+
+class ProofItemCreate(BaseModel):
+    content_item_id: str | None = None
+    title: str = Field(min_length=3, max_length=240)
+    proof_type: str = Field(default="build_log", max_length=80)
+    credibility_gap: str = Field(min_length=3, max_length=5000)
+    context: str = Field(min_length=3, max_length=20_000)
+    constraints: str = Field(min_length=3, max_length=20_000)
+    process: str = Field(min_length=3, max_length=20_000)
+    output: str = Field(min_length=3, max_length=20_000)
+    result: str = Field(min_length=3, max_length=20_000)
+    lessons: str = Field(min_length=3, max_length=20_000)
+    evidence_links: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    asset_ids: list[str] = Field(default_factory=list, max_length=100)
+    permission_status: str = Field(default="not_required", max_length=60)
+    sensitivity: str = Field(default="internal", max_length=60)
+
+
+class ProofItemView(ORMModel):
+    id: str
+    content_item_id: str | None
+    title: str
+    proof_type: str
+    credibility_gap: str
+    context: str
+    constraints: str
+    process: str
+    output: str
+    result: str
+    lessons: str
+    evidence_links: list[dict[str, Any]]
+    asset_ids: list[str]
+    permission_status: str
+    sensitivity: str
+    status: ProofStatus
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime

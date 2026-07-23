@@ -11,6 +11,8 @@ from app.db.models import (
     ContentItem,
     PipelineEvent,
     PipelineStatus,
+    ProductionPlan,
+    ProductionStatus,
 )
 
 
@@ -52,6 +54,20 @@ def transition_content(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="A final script approval is required before production.",
         )
+
+    if target == PipelineStatus.READY_TO_SHOOT and not item.is_demo:
+        plan = db.scalar(
+            select(ProductionPlan).where(
+                ProductionPlan.content_item_id == item.id,
+                ProductionPlan.status == ProductionStatus.READY,
+                ProductionPlan.readiness_score >= 100,
+            )
+        )
+        if not plan:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="A blocker-free production plan at 100% readiness is required.",
+            )
 
     event = PipelineEvent(
         content_item_id=item.id,

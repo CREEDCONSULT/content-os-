@@ -391,3 +391,130 @@ export type Script = {
   hooks: HookOption[];
   fact_check: FactCheck | null;
 };
+
+export type CapacityPlan = {
+  id: string;
+  week_start: string;
+  available_hours: number;
+  max_shoots: number;
+  max_edits: number;
+  fallback_plan: string;
+  notes: string | null;
+  is_demo: boolean;
+};
+
+export type CalendarEvent = {
+  id: string;
+  content_item_id: string | null;
+  title: string;
+  event_type: "research" | "write" | "review" | "shoot" | "edit" | "editorial_publish";
+  start_at: string;
+  end_at: string;
+  timezone: string;
+  status: string;
+  capacity_units: number;
+  notes: string | null;
+  is_demo: boolean;
+  created_at: string;
+};
+
+export type ProductionScene = {
+  id: string;
+  sequence: number;
+  title: string;
+  purpose: string;
+  dialogue: string;
+  duration_seconds: number;
+};
+
+export type ProductionShot = {
+  id: string;
+  production_scene_id: string;
+  sequence: number;
+  framing: string;
+  camera_angle: string;
+  movement: string;
+  lighting: string;
+  instructions: string;
+  is_b_roll: boolean;
+  status: string;
+};
+
+export type ChecklistItem = {
+  id: string;
+  phase: string;
+  label: string;
+  is_critical: boolean;
+  is_complete: boolean;
+  completed_at: string | null;
+};
+
+export type ProductionPlan = {
+  id: string;
+  content_item_id: string;
+  script_id: string;
+  title: string;
+  creative_treatment: string;
+  location: string | null;
+  equipment: string[];
+  wardrobe: string[];
+  props: string[];
+  lighting_plan: string;
+  music_direction: string;
+  scheduled_at: string | null;
+  estimated_minutes: number;
+  status: "draft" | "blocked" | "ready" | "in_progress" | "complete";
+  readiness_score: number;
+  blockers: string[];
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+  scenes: ProductionScene[];
+  shots: ProductionShot[];
+  checklist: ChecklistItem[];
+};
+
+export type Asset = {
+  id: string;
+  content_item_id: string | null;
+  production_plan_id: string | null;
+  filename: string;
+  storage_key: string;
+  media_type: string;
+  mime_type: string;
+  size_bytes: number;
+  checksum_sha256: string;
+  tags: string[];
+  people: string[];
+  location: string | null;
+  orientation: string | null;
+  quality_score: number;
+  rights_status: "unknown" | "owned" | "licensed" | "restricted";
+  rights_notes: string | null;
+  original_preserved: boolean;
+  duplicate_of_id: string | null;
+  is_demo: boolean;
+  created_at: string;
+};
+
+export type ProofItem = {
+  id: string;
+  content_item_id: string | null;
+  title: string;
+  proof_type: string;
+  credibility_gap: string;
+  context: string;
+  constraints: string;
+  process: string;
+  output: string;
+  result: string;
+  lessons: string;
+  evidence_links: { label?: string; url?: string; [key: string]: unknown }[];
+  asset_ids: string[];
+  permission_status: string;
+  sensitivity: string;
+  status: "draft" | "evidence_needed" | "verified" | "approved" | "archived";
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};

@@ -23,6 +23,10 @@ The first connected implementation milestone includes:
   budget gates, and Agent Console;
 - linked brief builder, immutable Script Studio, scored Hook Lab, manual evidence
   review, financial-language blocking, and final-script production gate;
+- capacity-first calendar, generated production plans, scene and shot lists,
+  mobile shoot checklists, and a server-enforced 100% readiness boundary;
+- checksummed original-asset ingestion, duplicate links, explicit rights states,
+  and permission-aware proof-of-work records;
 - realistic August-December 2026 demo data, visibly labeled in the product.
 
 See [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for verified
@@ -69,3 +73,5 @@ and verification.
 - [`docs/HUMAN_ACTION_QUEUE.md`](docs/HUMAN_ACTION_QUEUE.md)
 - [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md)
 - [`docs/CONTENT_AUTHORING.md`](docs/CONTENT_AUTHORING.md)
+- [`docs/CALENDAR_AND_PRODUCTION.md`](docs/CALENDAR_AND_PRODUCTION.md)
+- [`docs/ASSETS_AND_PROOF.md`](docs/ASSETS_AND_PROOF.md)

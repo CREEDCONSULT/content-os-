@@ -81,10 +81,7 @@ def test_budget_and_public_action_create_backend_approval(
     assert budget_response.status_code == 201
     budget_run = budget_response.json()
     assert budget_run["status"] == "blocked"
-    assert (
-        budget_run["approvals_required"][0]["action_type"]
-        == "paid_tool_use_above_budget"
-    )
+    assert budget_run["approvals_required"][0]["action_type"] == "paid_tool_use_above_budget"
 
     publish_response = authenticated_client.post(
         "/api/v1/agent/runs",

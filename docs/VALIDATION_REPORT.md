@@ -13,8 +13,8 @@ Content Lifecycle slice.
 | API lint | `npm run lint:api` | Passed |
 | Web type check | `npm run typecheck` | Passed |
 | Web tests | `npm run test:web` | 7 passed |
-| API tests | `npm run test:api` | 15 passed; 2 dependency deprecation warnings |
-| Production web build | `npm run build` | Passed; 11 static App Router routes generated |
+| API tests | `npm run test:api` | 19 passed; 2 dependency deprecation warnings |
+| Production web build | `npm run build` | Passed; 17 static App Router routes generated |
 | Complete code gate | `npm run check` | Passed |
 | Compose validation | `docker compose config --quiet` | Passed |
 | PostgreSQL migration drift | `docker compose exec -T api .venv/bin/alembic check` | Passed; no new upgrade operations |
@@ -118,3 +118,24 @@ Milestone 5 adds three API tests and a complete non-demo live smoke.
 The live local path used the persisted `Browser QA: live capture verified` idea. It
 ended with a non-demo approved script and linked content in `ready_to_shoot`. No
 public publishing or external provider call occurred.
+
+## Calendar, production, assets, and proof increment
+
+Milestone 6 adds four API tests and four operator workspaces.
+
+| Check | Result |
+|---|---|
+| Weekly capacity | Hour, shoot-count, and edit-count conflicts return `409` |
+| Production approval gate | Draft or unapproved scripts cannot create plans |
+| Production readiness | Plan remains blocked until logistics and every critical pre-shoot item pass |
+| Lifecycle boundary | Generic transition cannot bypass a missing 100% production plan |
+| Asset preservation | Original bytes, SHA-256, safe storage key, rights state, and duplicate link verified |
+| Proof evidence | Missing evidence and missing confidential-client permission remain `evidence_needed` |
+| Migration cycle | `upgrade -> downgrade db0eecfedeeb -> upgrade -> check` passed |
+| Live PostgreSQL | Migration `2378e805851a` is current with no schema drift |
+| Live seeded records | 3 events, 3 capacity plans, 1 blocked plan, 1 asset, and 1 proof item returned |
+| Web routes | `/calendar`, `/production`, `/assets`, and `/proof` each returned HTTP `200` |
+
+The live smoke was read-only after seeding. The one production plan remains
+intentionally blocked with four disclosed blockers; the smoke did not manufacture a
+ready state or fabricate proof.

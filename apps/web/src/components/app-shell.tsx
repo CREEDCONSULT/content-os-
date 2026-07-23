@@ -3,12 +3,16 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
+  Award,
   Bot,
   BookOpenText,
   Boxes,
+  CalendarDays,
   ChevronRight,
   CircleGauge,
+  Clapperboard,
   FilePenLine,
+  FolderArchive,
   Lightbulb,
   LogOut,
   Menu,
@@ -31,6 +35,10 @@ const navigation = [
   { href: "/ideas", label: "Idea intelligence", icon: Lightbulb },
   { href: "/pipeline", label: "Content lifecycle", icon: Boxes },
   { href: "/studio", label: "Script studio", icon: FilePenLine },
+  { href: "/calendar", label: "Content calendar", icon: CalendarDays },
+  { href: "/production", label: "Production & shoot", icon: Clapperboard },
+  { href: "/assets", label: "Asset library", icon: FolderArchive },
+  { href: "/proof", label: "Proof of work", icon: Award },
   { href: "/agent", label: "Agent console", icon: Bot },
   { href: "/approvals", label: "Approval queue", icon: ShieldCheck },
 ];

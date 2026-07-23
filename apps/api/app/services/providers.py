@@ -97,9 +97,7 @@ class OpenAIResponsesProvider:
         if not key:
             raise ProviderConfigurationError("OPENAI_API_KEY is required for AI_PROVIDER=openai.")
         if not model:
-            raise ProviderConfigurationError(
-                "BRAND_FAST_MODEL is required for AI_PROVIDER=openai."
-            )
+            raise ProviderConfigurationError("BRAND_FAST_MODEL is required for AI_PROVIDER=openai.")
 
         output_schema = {
             "type": "object",
