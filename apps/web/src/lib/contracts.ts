@@ -730,3 +730,20 @@ export type Experiment = {
   created_at: string;
   updated_at: string;
 };
+
+export type GlobalSearchResult = {
+  id: string;
+  record_type:
+    | "brand_document"
+    | "idea"
+    | "content_item"
+    | "memory"
+    | "creator"
+    | "benchmark";
+  title: string;
+  excerpt: string;
+  href: string;
+  authority: string;
+  score: number;
+  is_demo: boolean;
+};

@@ -16,6 +16,7 @@ import type {
   ContentList,
   DashboardSummary,
   Experiment,
+  GlobalSearchResult,
   HeartbeatRun,
   Idea,
   IdeaList,
@@ -29,6 +30,10 @@ import type {
   TelegramMessage,
   VaultSyncResult,
 } from "@/lib/contracts";
+import {
+  type CreateIdeaPayload,
+  queueOfflineIdea,
+} from "@/lib/offline-ideas";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
@@ -90,17 +95,25 @@ export const api = {
     const suffix = params.size ? `?${params}` : "";
     return request<IdeaList>(`/api/v1/ideas${suffix}`);
   },
-  createIdea: (payload: {
-    title: string;
-    raw_input: string;
-    pillar?: string;
-    audience: string;
-    platform_fit: string[];
-  }) =>
+  createIdea: (payload: CreateIdeaPayload) =>
     request<Idea>("/api/v1/ideas", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  createIdeaOrQueue: async (
+    payload: CreateIdeaPayload,
+  ): Promise<
+    | { mode: "created"; idea: Idea }
+    | { mode: "queued"; queue_id: string }
+  > => {
+    try {
+      return { mode: "created", idea: await api.createIdea(payload) };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      const queued = queueOfflineIdea(payload);
+      return { mode: "queued", queue_id: queued.id };
+    }
+  },
   content: () => request<ContentList>("/api/v1/content"),
   transitionContent: (id: string, toStatus: PipelineStatus) =>
     request<ContentItem>(`/api/v1/content/${id}/transition`, {
@@ -375,4 +388,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  search: (query: string) =>
+    request<GlobalSearchResult[]>(
+      `/api/v1/search?q=${encodeURIComponent(query)}`,
+    ),
 };

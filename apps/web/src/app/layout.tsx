@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   description:
     "The operating system for Mr. C. Mezie's brand intelligence, content production, and growth.",
   applicationName: "Mezie BrandOS",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/brandos-icon.svg",
+    apple: "/icons/brandos-icon.svg",
+  },
 };
 
 export const viewport: Viewport = {

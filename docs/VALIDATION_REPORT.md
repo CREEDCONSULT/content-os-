@@ -2,8 +2,8 @@
 
 Date: 2026-07-23
 
-Scope: repository bootstrap and the first connected Brand Intelligence, Ideas, and
-Content Lifecycle slice.
+Scope: complete connected local-first MVP through PWA, offline capture, global
+search, security hardening, and tested recovery.
 
 ## Automated validation
 
@@ -12,13 +12,15 @@ Content Lifecycle slice.
 | Web lint | `npm run lint:web` | Passed |
 | API lint | `npm run lint:api` | Passed |
 | Web type check | `npm run typecheck` | Passed |
-| Web tests | `npm run test:web` | 7 passed |
-| API tests | `npm run test:api` | 24 passed; 2 dependency deprecation warnings |
+| Web tests | `npm run test:web` | 9 passed |
+| API tests | `npm run test:api` | 32 passed; 2 dependency deprecation warnings |
 | Production web build | `npm run build` | Passed; 20 static App Router routes generated |
 | Complete code gate | `npm run check` | Passed |
 | Compose validation | `docker compose config --quiet` | Passed |
 | PostgreSQL migration drift | `docker compose exec -T api .venv/bin/alembic check` | Passed; no new upgrade operations |
-| Container health | `docker compose ps` | PostgreSQL, API, and web healthy |
+| Container health | `docker compose ps` | PostgreSQL, API, heartbeat worker, and web healthy |
+| Security gate | `.\scripts\security-check.ps1` | No tracked runtime env/token material or critical production advisory |
+| Recovery proof | `.\scripts\test-backup-restore.ps1` | Checksums passed; migration `4ca6a901f2f5` restored into isolated database; 1 brand record |
 
 ## Live API smoke
 
@@ -172,3 +174,25 @@ Live PostgreSQL smoke:
 
 No external scraping, live Telegram message, paid call, public schedule, or publish
 action occurred.
+
+## PWA, search, security, and recovery increment
+
+Milestone 12 adds eight API tests and two web tests beyond the Milestone 11
+baseline.
+
+| Check | Result |
+|---|---|
+| Install metadata | Manifest, scope, standalone display, icon, theme, and service worker build successfully |
+| Cache boundary | Service worker bypasses every `/api/` request |
+| Offline queue | Validated idea payload persists locally; replay removes only successful writes |
+| Error honesty | HTTP validation/auth errors remain visible and are not queued as network failures |
+| Global search | Anonymous request `401`; one-character query `422`; ranked results return authenticated records |
+| Login hardening | Eight failures remain `401`; the next request is `429` with `Retry-After` |
+| Response hardening | Session is HttpOnly/SameSite; API is no-store with request ID and clickjacking/MIME headers |
+| Restore safety | Traversal and unconfigured targets fail before existing files are deleted |
+| Backup proof | Database, vault, and storage hashes verified before isolated restore |
+| Production build | 20 static App Router routes, including manifest, generated successfully |
+
+No live-data restore was performed. Real-device PWA install/offline testing,
+automated screen-reader/accessibility testing, and Core Web Vitals collection are
+not claimed and remain public-release gates.

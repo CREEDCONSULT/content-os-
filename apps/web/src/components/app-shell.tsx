@@ -22,15 +22,21 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  WifiOff,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
+import { CommandPalette } from "@/components/command-palette";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import {
+  listQueuedIdeas,
+  OFFLINE_IDEA_QUEUE_EVENT,
+} from "@/lib/offline-ideas";
 
 const navigation = [
   { href: "/dashboard", label: "Command center", icon: CircleGauge },
@@ -56,11 +62,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [queuedIdeaCount, setQueuedIdeaCount] = useState(0);
+  const [online, setOnline] = useState(true);
   const userQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: api.me,
     retry: false,
   });
+
+  useEffect(() => {
+    const refreshConnectionState = () => {
+      setQueuedIdeaCount(listQueuedIdeas().length);
+      setOnline(navigator.onLine);
+    };
+    refreshConnectionState();
+    window.addEventListener(OFFLINE_IDEA_QUEUE_EVENT, refreshConnectionState);
+    window.addEventListener("online", refreshConnectionState);
+    window.addEventListener("offline", refreshConnectionState);
+    return () => {
+      window.removeEventListener(OFFLINE_IDEA_QUEUE_EVENT, refreshConnectionState);
+      window.removeEventListener("online", refreshConnectionState);
+      window.removeEventListener("offline", refreshConnectionState);
+    };
+  }, []);
 
   if (userQuery.isError) {
     const error = userQuery.error;
@@ -190,6 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <CommandPalette />
             <span className="hidden items-center gap-1.5 rounded-full border border-purple/25 bg-purple/7 px-3 py-1.5 text-[0.68rem] font-semibold text-purple sm:flex">
               <Sparkles className="size-3.5" />
               AI: controlled mock
@@ -200,6 +225,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
         </header>
+        {(!online || queuedIdeaCount > 0) && (
+          <div
+            className="flex items-center justify-center gap-2 border-b border-gold/20 bg-gold/8 px-4 py-2 text-center text-xs text-gold-bright"
+            role="status"
+            aria-live="polite"
+          >
+            <WifiOff className="size-3.5" />
+            {!online
+              ? `Offline mode${queuedIdeaCount ? ` · ${queuedIdeaCount} idea${queuedIdeaCount === 1 ? "" : "s"} saved on this device` : ""}`
+              : `${queuedIdeaCount} offline idea${queuedIdeaCount === 1 ? "" : "s"} waiting to replay`}
+          </div>
+        )}
         <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

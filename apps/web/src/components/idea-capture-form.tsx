@@ -33,17 +33,25 @@ export function IdeaCaptureForm({
   const [audience, setAudience] = useState("Emerging Builder");
   const [platformFit, setPlatformFit] = useState<string[]>(["LinkedIn"]);
   const [validationError, setValidationError] = useState("");
+  const [captureNotice, setCaptureNotice] = useState("");
   const createIdea = useMutation({
-    mutationFn: api.createIdea,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["ideas"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      ]);
+    mutationFn: api.createIdeaOrQueue,
+    onSuccess: async (result) => {
+      if (result.mode === "created") {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["ideas"] }),
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        ]);
+      }
+      setCaptureNotice(
+        result.mode === "queued"
+          ? "Saved on this device. BrandOS will replay it when the API reconnects."
+          : "",
+      );
       setTitle("");
       setRawInput("");
       setValidationError("");
-      onClose();
+      if (result.mode === "created") onClose();
     },
   });
 
@@ -71,6 +79,7 @@ export function IdeaCaptureForm({
       return;
     }
     setValidationError("");
+    setCaptureNotice("");
     createIdea.mutate(parsed.data);
   };
 
@@ -165,6 +174,15 @@ export function IdeaCaptureForm({
             })}
           </div>
         </fieldset>
+
+        {captureNotice && (
+          <p
+            className="mt-5 rounded-lg border border-gold/25 bg-gold/8 p-3 text-xs text-gold-bright"
+            role="status"
+          >
+            {captureNotice}
+          </p>
+        )}
 
         {(validationError || createIdea.isError) && (
           <p className="mt-5 rounded-lg border border-danger/25 bg-danger/8 p-3 text-xs text-danger">

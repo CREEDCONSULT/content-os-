@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     session_secret: SecretStr = SecretStr("brandos-local-session-secret-change-me")
     session_ttl_seconds: int = 43_200
     secure_cookies: bool = False
+    login_rate_limit_attempts: int = 8
+    login_rate_limit_window_seconds: int = 300
 
     ai_provider: str = "mock"
     openai_api_key: SecretStr | None = None

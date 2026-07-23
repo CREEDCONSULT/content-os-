@@ -1020,3 +1020,14 @@ class ExperimentView(ORMModel):
     is_demo: bool
     created_at: datetime
     updated_at: datetime
+
+
+class GlobalSearchResult(BaseModel):
+    id: str
+    record_type: str
+    title: str
+    excerpt: str
+    href: str
+    authority: str
+    score: float
+    is_demo: bool

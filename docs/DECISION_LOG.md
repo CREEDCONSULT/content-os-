@@ -71,3 +71,19 @@
 - Decision: Bind Mezie BrandOS to host port `3100` while keeping the container on port `3000`.
 - Reason: The current workstation already runs Creed/Open WebUI on port `3000`. BrandOS must not stop, reuse, or mutate that existing service. `BRANDOS_WEB_PORT` remains configurable for other environments.
 - Reversal condition: The host port becomes available and the founder explicitly chooses to move the application.
+
+## ADR-010 - Narrow offline capture
+
+- Date: 2026-07-23
+- Status: accepted
+- Decision: Cache only the PWA shell/static resources and queue only validated idea payloads in origin-local storage. Never cache API requests or claim offline access to server data.
+- Reason: The founder needs resilient field capture without creating a second operational database or weakening API validation.
+- Reversal condition: Restricted-data capture or multi-device offline editing requires an encrypted, conflict-aware replication design.
+
+## ADR-011 - Local and public release are separate gates
+
+- Date: 2026-07-23
+- Status: accepted
+- Decision: Approve the connected MVP for a trusted local workstation while blocking public exposure until dependency and remote-auth risks are resolved.
+- Reason: Healthy local workflows do not make local single-user authentication or an advised dependency tree internet-ready.
+- Reversal condition: R-012 and R-015 close with current validation evidence.
