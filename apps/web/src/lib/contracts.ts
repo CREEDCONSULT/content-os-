@@ -197,3 +197,95 @@ export type Integration = {
   last_checked_at: string;
   server_side_only: boolean;
 };
+
+export type SkillDefinition = {
+  id: string;
+  slug: string;
+  name: string;
+  version: string;
+  description: string;
+  trigger_summary: string;
+  input_schema: Record<string, unknown>;
+  required_context: string[];
+  allowed_tools: string[];
+  workflow: string[];
+  output_schema: Record<string, unknown>;
+  memory_policy: string;
+  approval_policy: string;
+  failure_behavior: string;
+  model_profile: string;
+  timeout_seconds: number;
+  cost_class: string;
+  source_path: string;
+  enabled: boolean;
+};
+
+export type ContextSource = {
+  document_id: string;
+  version_id: string;
+  title: string;
+  source_path: string | null;
+  classification: string;
+  authority: string;
+  checksum_sha256: string;
+  pack_fingerprint?: string;
+};
+
+export type AgentRun = {
+  id: string;
+  request_id: string;
+  idempotency_key: string | null;
+  channel: string;
+  intent: string;
+  status: "running" | "completed" | "blocked" | "failed";
+  provider: "mock" | "openai" | string;
+  model_alias: string;
+  context_pack_id: string | null;
+  skills_used: string[];
+  tools_used: string[];
+  context_loaded: ContextSource[];
+  input_envelope: Record<string, unknown>;
+  output_envelope: {
+    skill?: string;
+    status?: string;
+    summary?: string;
+    outputs?: {
+      provider_output?: {
+        summary?: string;
+        classifications?: {
+          statement: string;
+          type: string;
+          evidence: string;
+        }[];
+        warnings?: string[];
+        next_actions?: string[];
+        confidence?: number;
+      };
+      [key: string]: unknown;
+    };
+    warnings?: string[];
+    next_actions?: string[];
+    [key: string]: unknown;
+  };
+  model_cost: number;
+  tool_cost: number;
+  confidence: number;
+  summary: string;
+  proposed_writes: Record<string, unknown>[];
+  completed_writes: Record<string, unknown>[];
+  approvals_required: {
+    approval_id: string;
+    action_type: string;
+    risk_level: string;
+  }[];
+  next_actions: string[];
+  error: string | null;
+  completed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+};
+
+export type AgentRunList = {
+  items: AgentRun[];
+  total: number;
+};

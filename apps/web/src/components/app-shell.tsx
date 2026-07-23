@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
+  Bot,
   BookOpenText,
   Boxes,
   ChevronRight,
@@ -28,6 +29,7 @@ const navigation = [
   { href: "/brand", label: "Brand intelligence", icon: BookOpenText },
   { href: "/ideas", label: "Idea intelligence", icon: Lightbulb },
   { href: "/pipeline", label: "Content lifecycle", icon: Boxes },
+  { href: "/agent", label: "Agent console", icon: Bot },
   { href: "/approvals", label: "Approval queue", icon: ShieldCheck },
 ];
 

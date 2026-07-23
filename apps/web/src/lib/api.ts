@@ -1,4 +1,6 @@
 import type {
+  AgentRun,
+  AgentRunList,
   Approval,
   AuthUser,
   BrandDocument,
@@ -10,6 +12,7 @@ import type {
   IdeaList,
   Integration,
   PipelineStatus,
+  SkillDefinition,
 } from "@/lib/contracts";
 
 const API_BASE_URL =
@@ -98,4 +101,16 @@ export const api = {
     }),
   integrations: () =>
     request<{ items: Integration[] }>("/api/v1/integrations/status"),
+  skills: () => request<SkillDefinition[]>("/api/v1/agent/skills"),
+  agentRuns: () => request<AgentRunList>("/api/v1/agent/runs"),
+  createAgentRun: (payload: {
+    intent: string;
+    idempotency_key: string;
+    budget: { model_usd: number; tool_usd: number };
+    raw_input?: Record<string, unknown>;
+  }) =>
+    request<AgentRun>("/api/v1/agent/runs", {
+      method: "POST",
+      body: JSON.stringify({ channel: "dashboard", ...payload }),
+    }),
 };

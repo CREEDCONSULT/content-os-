@@ -19,6 +19,8 @@ The first connected implementation milestone includes:
 - live Ideas Inbox and governed 15-state content lifecycle;
 - deterministic mock provider disclosure and server-side adapter status;
 - backend-enforced approval records and negative transition tests;
+- typed 30-skill Brand Director runtime, canonical context packs, transparent runs,
+  budget gates, and Agent Console;
 - realistic August-December 2026 demo data, visibly labeled in the product.
 
 See [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for verified
@@ -63,3 +65,4 @@ and verification.
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md)
 - [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md)
 - [`docs/HUMAN_ACTION_QUEUE.md`](docs/HUMAN_ACTION_QUEUE.md)
+- [`docs/AGENT_RUNTIME.md`](docs/AGENT_RUNTIME.md)

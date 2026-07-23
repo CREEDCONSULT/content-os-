@@ -77,3 +77,23 @@ so it was not applied. R-012 remains a public-release blocker.
 The connected local slice is usable and reproducible. It is approved for continued
 local MVP development. It is not approved for public deployment because dependency
 R-012 and remote-authentication hardening R-015 remain open.
+
+## Agent runtime increment
+
+The Milestone 4 runtime added four API tests, bringing the API total to 12 and the
+repository total to 19.
+
+| Check | Result |
+|---|---|
+| Skill import | 30 typed definitions persisted from supplied contracts |
+| Mock execution | Completed with 5 routed skills, 4 canonical sources, and 0 writes |
+| Context provenance | Active document and version IDs, paths, authority, and checksums returned |
+| Idempotency | Repeated key returned the original run |
+| Budget enforcement | Above-ceiling request created a pending backend approval |
+| Publishing enforcement | Public-publish intent created a pending backend approval |
+| Migration cycle | `upgrade -> downgrade -1 -> upgrade -> check` passed on SQLite |
+| Live PostgreSQL migration | `c06caa04f0c9 -> dd607cc884a2` passed |
+| Agent Console | ESLint, TypeScript, and Next.js production build passed |
+
+The live OpenAI path was not called. No credential or model alias is configured,
+and deterministic mock mode remains visibly active.

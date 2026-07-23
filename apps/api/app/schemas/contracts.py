@@ -262,3 +262,85 @@ class IntegrationState(BaseModel):
 
 class IntegrationList(BaseModel):
     items: list[IntegrationState]
+
+
+class AgentBudget(BaseModel):
+    model_usd: float = Field(default=0, ge=0, le=100)
+    tool_usd: float = Field(default=0, ge=0, le=100)
+
+
+class AgentRunCreate(BaseModel):
+    request_id: str | None = Field(default=None, max_length=80)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=160)
+    channel: str = Field(default="dashboard", pattern="^(dashboard|telegram|heartbeat|api)$")
+    intent: str = Field(min_length=3, max_length=240)
+    raw_input: dict[str, Any] = Field(default_factory=dict)
+    budget: AgentBudget = Field(default_factory=AgentBudget)
+
+
+class SkillDefinitionView(ORMModel):
+    id: str
+    slug: str
+    name: str
+    version: str
+    description: str
+    trigger_summary: str
+    input_schema: dict[str, Any]
+    required_context: list[str]
+    allowed_tools: list[str]
+    workflow: list[str]
+    output_schema: dict[str, Any]
+    memory_policy: str
+    approval_policy: str
+    failure_behavior: str
+    model_profile: str
+    timeout_seconds: int
+    cost_class: str
+    source_path: str
+    enabled: bool
+
+
+class ContextPackView(ORMModel):
+    id: str
+    intent: str
+    source_records: list[dict[str, Any]]
+    context_markdown: str
+    token_estimate: int
+    freshness_notes: list[str]
+    exclusions: list[str]
+    status: str
+    created_at: datetime
+
+
+class AgentRunView(ORMModel):
+    id: str
+    request_id: str
+    idempotency_key: str | None
+    channel: str
+    intent: str
+    status: str
+    provider: str
+    model_alias: str
+    context_pack_id: str | None
+    skills_used: list[str]
+    tools_used: list[str]
+    context_loaded: list[dict[str, Any]]
+    input_envelope: dict[str, Any]
+    output_envelope: dict[str, Any]
+    model_cost: float
+    tool_cost: float
+    confidence: float
+    summary: str
+    proposed_writes: list[dict[str, Any]]
+    completed_writes: list[dict[str, Any]]
+    approvals_required: list[dict[str, Any]]
+    next_actions: list[str]
+    error: str | None
+    completed_at: datetime | None
+    is_demo: bool
+    created_at: datetime
+
+
+class AgentRunList(BaseModel):
+    items: list[AgentRunView]
+    total: int

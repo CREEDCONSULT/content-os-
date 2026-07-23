@@ -7,7 +7,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import approvals, auth, brand, content, dashboard, health, ideas, integrations
+from app.routers import (
+    agent,
+    approvals,
+    auth,
+    brand,
+    content,
+    dashboard,
+    health,
+    ideas,
+    integrations,
+)
 
 settings = get_settings()
 logger = structlog.get_logger()
@@ -43,3 +53,4 @@ app.include_router(ideas.router)
 app.include_router(content.router)
 app.include_router(approvals.router)
 app.include_router(integrations.router)
+app.include_router(agent.router)

@@ -260,22 +260,74 @@ class MetricSnapshot(Timestamped, Base):
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
+class SkillDefinition(Timestamped, Base):
+    __tablename__ = "skill_definitions"
+
+    slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    version: Mapped[str] = mapped_column(String(40), default="1.0.0", nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    trigger_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    input_schema: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    required_context: Mapped[list[str]] = mapped_column(JSON, default=list)
+    allowed_tools: Mapped[list[str]] = mapped_column(JSON, default=list)
+    workflow: Mapped[list[str]] = mapped_column(JSON, default=list)
+    output_schema: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    memory_policy: Mapped[str] = mapped_column(Text, nullable=False)
+    approval_policy: Mapped[str] = mapped_column(Text, nullable=False)
+    failure_behavior: Mapped[str] = mapped_column(Text, nullable=False)
+    model_profile: Mapped[str] = mapped_column(String(80), default="brand_fast_model")
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=120)
+    cost_class: Mapped[str] = mapped_column(String(30), default="low")
+    source_path: Mapped[str] = mapped_column(String(800), nullable=False)
+    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+
+
+class ContextPack(Timestamped, Base):
+    __tablename__ = "context_packs"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    intent: Mapped[str] = mapped_column(String(500), nullable=False)
+    source_records: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    context_markdown: Mapped[str] = mapped_column(Text, nullable=False)
+    token_estimate: Mapped[int] = mapped_column(Integer, default=0)
+    freshness_notes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    exclusions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(40), default="ready", index=True)
+
+
 class AgentRun(Timestamped, Base):
     __tablename__ = "agent_runs"
 
     brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    request_id: Mapped[str] = mapped_column(
+        String(80), default=lambda: str(uuid.uuid4()), nullable=False, index=True
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(String(160), unique=True, index=True)
     channel: Mapped[str] = mapped_column(String(40), nullable=False)
     intent: Mapped[str] = mapped_column(String(240), nullable=False)
     status: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(40), default="mock", nullable=False)
     model_alias: Mapped[str] = mapped_column(String(100), nullable=False)
+    context_pack_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("context_packs.id"), index=True
+    )
     skills_used: Mapped[list[str]] = mapped_column(JSON, default=list)
     tools_used: Mapped[list[str]] = mapped_column(JSON, default=list)
     context_loaded: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    input_envelope: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    output_envelope: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     model_cost: Mapped[float] = mapped_column(Float, default=0)
     tool_cost: Mapped[float] = mapped_column(Float, default=0)
     confidence: Mapped[float] = mapped_column(Float, default=0)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
+    proposed_writes: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    completed_writes: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    approvals_required: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    next_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
     error: Mapped[str | None] = mapped_column(Text)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
 
 

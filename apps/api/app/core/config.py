@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     ai_provider: str = "mock"
     openai_api_key: SecretStr | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_timeout_seconds: float = 60.0
     brand_quality_model: str | None = None
     brand_fast_model: str | None = None
     brand_vision_model: str | None = None

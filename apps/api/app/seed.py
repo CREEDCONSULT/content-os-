@@ -23,6 +23,7 @@ from app.db.models import (
     IdeaStatus,
     MetricSnapshot,
     PipelineStatus,
+    SkillDefinition,
     Task,
 )
 from app.db.session import SessionLocal
@@ -139,6 +140,108 @@ def import_documents(db: Session, brand: Brand, source_root: Path) -> int:
         db.add(version)
         db.flush()
         document.current_version_id = version.id
+        imported += 1
+    db.commit()
+    return imported
+
+
+def _markdown_section(content: str, heading: str) -> str:
+    match = re.search(
+        rf"(?ms)^## {re.escape(heading)}\s*$\n(.*?)(?=^## |\Z)",
+        content,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def _list_items(section: str) -> list[str]:
+    items: list[str] = []
+    for line in section.splitlines():
+        cleaned = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", line).strip()
+        if cleaned and cleaned != line.strip():
+            items.append(cleaned)
+    return items
+
+
+def import_skill_definitions(db: Session, source_root: Path) -> int:
+    library_root = source_root / "skills" / "Mezie_BrandOS_Skill_Library_v1"
+    if not library_root.exists():
+        return 0
+    imported = 0
+    for path in sorted(library_root.glob("[0-9][0-9]_*/SKILL.md")):
+        slug = path.parent.name
+        if db.scalar(select(SkillDefinition.id).where(SkillDefinition.slug == slug)):
+            continue
+        content = path.read_text(encoding="utf-8-sig")
+        title = title_from_markdown(path, content)
+        purpose = _markdown_section(content, "Purpose")
+        triggers = _markdown_section(content, "Triggers")
+        required_context = _list_items(_markdown_section(content, "Required Context"))
+        allowed_tools = _list_items(_markdown_section(content, "Tools and Dependencies"))
+        workflow = _list_items(_markdown_section(content, "Workflow"))
+        approval_policy = (
+            _markdown_section(content, "Approval Rules") or "No approval rule supplied."
+        )
+        memory_policy = _markdown_section(content, "Memory Rules") or "No memory write."
+        failure_behavior = (
+            _markdown_section(content, "Failure Handling") or "Return a typed failed result."
+        )
+        high_reasoning = {
+            "01_brand_strategy",
+            "03_creator_intelligence",
+            "04_trend_research",
+            "16_financial_content_safety",
+            "17_fact_checking",
+            "20_analytics_review",
+        }
+        skill = SkillDefinition(
+            slug=slug,
+            name=title,
+            version="1.0.0",
+            description=purpose or title,
+            trigger_summary=triggers or "Routed explicitly by the BrandOS Skill Router.",
+            input_schema={
+                "type": "object",
+                "required": [
+                    "request_id",
+                    "user_id",
+                    "brand_id",
+                    "channel",
+                    "intent",
+                    "raw_input",
+                    "permissions",
+                    "budget",
+                    "approval_state",
+                ],
+            },
+            required_context=required_context,
+            allowed_tools=allowed_tools,
+            workflow=workflow,
+            output_schema={
+                "type": "object",
+                "required": [
+                    "skill",
+                    "status",
+                    "summary",
+                    "outputs",
+                    "sources",
+                    "memory_writes",
+                    "approvals_required",
+                    "next_actions",
+                    "confidence",
+                ],
+            },
+            memory_policy=memory_policy,
+            approval_policy=approval_policy,
+            failure_behavior=failure_behavior,
+            model_profile=(
+                "brand_quality_model" if slug in high_reasoning else "brand_fast_model"
+            ),
+            timeout_seconds=180 if slug in high_reasoning else 120,
+            cost_class="medium" if slug in high_reasoning else "low",
+            source_path=f"docs/source/{path.relative_to(source_root).as_posix()}",
+            checksum_sha256=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        )
+        db.add(skill)
         imported += 1
     db.commit()
     return imported
@@ -388,15 +491,21 @@ def seed_workspace(db: Session, brand: Brand) -> None:
 
 def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int]:
     brand = seed_brand(db)
-    imported = import_documents(db, brand, source_root or resolve_source_root())
+    resolved_source_root = source_root or resolve_source_root()
+    imported = import_documents(db, brand, resolved_source_root)
+    skills_imported = import_skill_definitions(db, resolved_source_root)
     seed_workspace(db, brand)
-    return {"documents_imported": imported}
+    return {"documents_imported": imported, "skills_imported": skills_imported}
 
 
 def main() -> None:
     with SessionLocal() as db:
         result = seed_database(db)
-    print(f"Seed complete: {result['documents_imported']} source documents imported.")
+    print(
+        "Seed complete: "
+        f"{result['documents_imported']} source documents and "
+        f"{result['skills_imported']} skill definitions imported."
+    )
 
 
 if __name__ == "__main__":
