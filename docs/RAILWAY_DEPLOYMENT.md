@@ -19,7 +19,7 @@ Use these Railway build/deploy settings:
 - Branch: `main`
 - Root directory: leave blank / repo root
 - Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=apps/api/Dockerfile`
-- Healthcheck path: `/health`
+- Healthcheck path: `/health` from the root `railway.json`
 - Public networking: generate a Railway HTTPS domain
 - Volume: mount one Railway volume at `/app/data`
 
@@ -78,6 +78,7 @@ Use these Railway build/deploy settings:
 - Branch: `main`
 - Root directory: leave blank / repo root
 - Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=apps/web/Dockerfile`
+- Healthcheck path: `/health` from the root `railway.json`
 - Public networking: generate a Railway HTTPS domain
 
 Set these web variables in Railway:
