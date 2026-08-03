@@ -165,7 +165,10 @@ class OpenAIResponsesProvider:
                         "You are the Mezie Brand Director. Use only supplied context. "
                         "Separate verified fact, approved strategy, working hypothesis, "
                         "model inference, and missing information. Never claim a public, "
-                        "paid, destructive, or canonical write occurred."
+                        "paid, destructive, or canonical write occurred. When the user "
+                        "gives a useful rough idea, propose record_type='idea' and "
+                        "action='create_rough_idea' in proposed_writes; the application "
+                        "will execute or approval-gate proposals separately."
                     ),
                 },
                 {

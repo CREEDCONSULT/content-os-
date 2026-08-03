@@ -577,6 +577,68 @@ class MemoryRecord(Timestamped, Base):
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
+class KnowledgeEntity(Timestamped, Base):
+    __tablename__ = "knowledge_entities"
+    __table_args__ = (UniqueConstraint("brand_id", "entity_type", "slug"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(240), nullable=False)
+    slug: Mapped[str] = mapped_column(String(240), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    aliases: Mapped[list[str]] = mapped_column(JSON, default=list)
+    canonical_status: Mapped[CanonicalStatus] = mapped_column(
+        Enum(CanonicalStatus, native_enum=False),
+        default=CanonicalStatus.WORKING,
+        index=True,
+    )
+    sensitivity: Mapped[str] = mapped_column(String(60), default="internal", index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class KnowledgeEdge(Timestamped, Base):
+    __tablename__ = "knowledge_edges"
+    __table_args__ = (
+        UniqueConstraint(
+            "brand_id",
+            "source_type",
+            "source_id",
+            "relationship_type",
+            "target_type",
+            "target_id",
+        ),
+    )
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    source_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    target_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    relationship_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(240), default="")
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    canonical_status: Mapped[CanonicalStatus] = mapped_column(
+        Enum(CanonicalStatus, native_enum=False),
+        default=CanonicalStatus.WORKING,
+        index=True,
+    )
+    sensitivity: Mapped[str] = mapped_column(String(60), default="internal", index=True)
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_by: Mapped[str] = mapped_column(String(120), default="system")
+    approved_by: Mapped[str | None] = mapped_column(String(120))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
 class SyncEvent(Timestamped, Base):
     __tablename__ = "sync_events"
 
@@ -661,6 +723,53 @@ class TelegramMessage(Timestamped, Base):
     created_record_id: Mapped[str | None] = mapped_column(Uuid(as_uuid=False))
     response_text: Mapped[str] = mapped_column(Text, nullable=False)
     failure_reason: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ConversationSession(Timestamped, Base):
+    __tablename__ = "conversation_sessions"
+    __table_args__ = (UniqueConstraint("brand_id", "channel", "external_thread_id"),)
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    external_thread_id: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="active", index=True)
+    current_intent: Mapped[str | None] = mapped_column(String(240))
+    active_agent: Mapped[str] = mapped_column(String(80), default="brand_director", index=True)
+    memory_scope: Mapped[str] = mapped_column(String(40), default="rough", index=True)
+    last_message_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+    summary: Mapped[str] = mapped_column(Text, default="")
+    open_questions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    proposed_action_count: Mapped[int] = mapped_column(Integer, default=0)
+    approval_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ConversationMessage(Timestamped, Base):
+    __tablename__ = "conversation_messages"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    session_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("conversation_sessions.id"), index=True
+    )
+    channel: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    sender_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    sender_id: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
+    message_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    content_text: Mapped[str] = mapped_column(Text, default="")
+    content_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    source_reference: Mapped[str | None] = mapped_column(String(800))
+    telegram_update_id: Mapped[str | None] = mapped_column(String(120), index=True)
+    telegram_message_id: Mapped[str | None] = mapped_column(String(120))
+    attachment_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    agent_run_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("agent_runs.id"), index=True
+    )
+    sensitivity: Mapped[str] = mapped_column(String(60), default="internal", index=True)
+    status: Mapped[str] = mapped_column(String(60), default="received", index=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
@@ -901,6 +1010,59 @@ class AgentRun(Timestamped, Base):
     error: Mapped[str | None] = mapped_column(Text)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class AgentToolCall(Timestamped, Base):
+    __tablename__ = "agent_tool_calls"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    session_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("conversation_sessions.id"), index=True
+    )
+    agent_run_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("agent_runs.id"), index=True
+    )
+    tool_name: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    tool_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    input_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    output_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(60), default="proposed", index=True)
+    cost_estimate: Mapped[float] = mapped_column(Float, default=0)
+    approval_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("approvals.id"), index=True
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+
+class ProposedDashboardAction(Timestamped, Base):
+    __tablename__ = "proposed_dashboard_actions"
+
+    brand_id: Mapped[str] = mapped_column(Uuid(as_uuid=False), ForeignKey("brands.id"), index=True)
+    session_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("conversation_sessions.id"), index=True
+    )
+    agent_run_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("agent_runs.id"), index=True
+    )
+    action_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    target_type: Mapped[str | None] = mapped_column(String(80), index=True)
+    target_id: Mapped[str | None] = mapped_column(String(120), index=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_level: Mapped[RiskLevel] = mapped_column(
+        Enum(RiskLevel, native_enum=False),
+        default=RiskLevel.LOW,
+        index=True,
+    )
+    status: Mapped[str] = mapped_column(String(60), default="proposed", index=True)
+    approval_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("approvals.id"), index=True
+    )
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
 class AuditEvent(Timestamped, Base):

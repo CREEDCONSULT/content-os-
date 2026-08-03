@@ -4,10 +4,12 @@ import secrets
 import uuid
 from typing import Any
 
+import httpx
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.auth import UserPrincipal
 from app.core.config import Settings
 from app.db.models import (
     BenchmarkContent,
@@ -17,6 +19,9 @@ from app.db.models import (
     TelegramMessage,
 )
 from app.schemas.contracts import TelegramCapture
+from app.services.conversations import process_conversation_turn
+
+MAX_TELEGRAM_MESSAGE_CHARS = 3800
 
 
 def _brand(db: Session) -> Brand:
@@ -60,20 +65,60 @@ def _classify(content: str, message_type: str) -> str:
     normalized = content.strip().lower()
     if message_type == "voice":
         return "idea"
+    if normalized.startswith("/idea"):
+        return "idea"
     if normalized.startswith("/status"):
         return "status"
-    if normalized.startswith("/benchmark") or normalized.startswith("http"):
+    if (
+        message_type == "link"
+        or normalized.startswith("/benchmark")
+        or normalized.startswith("http")
+    ):
+        return "benchmark"
+    if normalized.startswith("/watch"):
         return "benchmark"
     if normalized.startswith("/approve"):
         return "approval_request"
-    return "idea"
+    return "conversation"
+
+
+def send_telegram_reply(
+    settings: Settings,
+    chat_id: str | None,
+    text: str,
+) -> dict[str, str]:
+    if settings.app_env.lower() == "test":
+        return {"status": "skipped", "reason": "test_environment"}
+    token = settings.telegram_bot_token.get_secret_value() if settings.telegram_bot_token else ""
+    if not token:
+        return {"status": "skipped", "reason": "TELEGRAM_BOT_TOKEN is not configured"}
+    if not chat_id:
+        return {"status": "skipped", "reason": "telegram_chat_id_missing"}
+    body = {
+        "chat_id": chat_id,
+        "text": text[:MAX_TELEGRAM_MESSAGE_CHARS],
+        "disable_web_page_preview": True,
+    }
+    try:
+        with httpx.Client(timeout=10) as client:
+            response = client.post(f"https://api.telegram.org/bot{token}/sendMessage", json=body)
+    except httpx.HTTPError:
+        return {"status": "failed", "reason": "Telegram Bot API request failed"}
+    if response.status_code >= 400:
+        return {
+            "status": "failed",
+            "reason": f"Telegram Bot API returned HTTP {response.status_code}",
+        }
+    return {"status": "sent", "reason": "ok"}
 
 
 def _capture(
     db: Session,
     *,
+    settings: Settings | None = None,
     update_id: str,
     sender_id: int,
+    chat_id: str | None = None,
     message_id: str | None,
     message_type: str,
     text: str | None,
@@ -90,6 +135,7 @@ def _capture(
     record_type: str | None = None
     record_id: str | None = None
     failure: str | None = None
+    should_route_to_agent = False
 
     if message_type == "voice" and not transcript:
         message_status = "pending_transcription"
@@ -117,11 +163,13 @@ def _capture(
             "dashboard. No decision was made from this capture."
         )
     elif classification == "benchmark":
+        should_route_to_agent = True
         url = next((part for part in content.split() if part.startswith("http")), None)
         if not url:
             message_status = "needs_input"
             response = "Add a full benchmark URL after /benchmark."
             failure = "Benchmark URL missing."
+            should_route_to_agent = False
         else:
             benchmark = db.scalar(
                 select(BenchmarkContent).where(
@@ -160,7 +208,8 @@ def _capture(
             record_id = benchmark.id
             message_status = "completed"
             response = "Benchmark URL saved. Add evidence in Creator Benchmarks to run a teardown."
-    else:
+    elif classification == "idea":
+        should_route_to_agent = True
         idea_title = content.removeprefix("/idea").strip().splitlines()[0][:240]
         idea_title = idea_title or "Telegram voice idea"
         idea = Idea(
@@ -179,6 +228,58 @@ def _capture(
         record_id = idea.id
         message_status = "completed"
         response = f'Idea captured: "{idea.title}". Open the Ideas Inbox to score it.'
+    else:
+        should_route_to_agent = True
+        message_status = "completed"
+        response = (
+            "I saved this in the rough conversation lane and routed it through BrandOS."
+        )
+
+    if should_route_to_agent and settings:
+        try:
+            turn = process_conversation_turn(
+                db,
+                settings,
+                user=UserPrincipal(
+                    username=f"telegram:{sender_id}",
+                    display_name="Telegram founder",
+                    permissions=("read", "draft", "internal_write"),
+                ),
+                channel="telegram",
+                sender_id=str(sender_id),
+                external_thread_id=chat_id or str(sender_id),
+                content_text=content,
+                message_type=message_type,
+                content_json={
+                    "classification": classification,
+                    "created_record_type": record_type,
+                    "created_record_id": record_id,
+                    "telegram_update_id": update_id,
+                },
+                source_reference=source_reference,
+                telegram_update_id=update_id,
+                telegram_message_id=message_id,
+                is_demo=is_simulation,
+            )
+            response = turn.reply_text
+            if turn.agent_run and turn.agent_run.status == "failed":
+                message_status = "agent_failed"
+                failure = "Conversation agent failed safely; inspect Agent Console."
+        except Exception:
+            message_status = "agent_failed"
+            response = (
+                "I preserved your message, but the BrandOS conversation agent hit an "
+                "unexpected processing error. Check the dashboard logs before retrying."
+            )
+            failure = "Conversation orchestration failed."
+
+    outbound = (
+        send_telegram_reply(settings, chat_id, response)
+        if settings and not is_simulation
+        else {"status": "skipped", "reason": "simulation_or_missing_settings"}
+    )
+    if outbound["status"] == "failed":
+        failure = failure or outbound["reason"]
 
     message = TelegramMessage(
         brand_id=brand.id,
@@ -234,13 +335,17 @@ def capture_webhook_update(
     verify_webhook(settings, sender_id, supplied_secret)
     text = message.get("text") or message.get("caption")
     voice = message.get("voice")
+    chat = message.get("chat") or {}
+    chat_id = chat.get("id") if isinstance(chat, dict) else None
     message_type = (
         "voice" if voice else ("link" if isinstance(text, str) and "http" in text else "text")
     )
     return _capture(
         db,
+        settings=settings,
         update_id=str(update.get("update_id", "")),
         sender_id=sender_id,
+        chat_id=str(chat_id) if chat_id is not None else str(sender_id),
         message_id=str(message.get("message_id")) if message.get("message_id") else None,
         message_type=message_type,
         text=text if isinstance(text, str) else None,

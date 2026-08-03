@@ -1,6 +1,6 @@
 # Agent Runtime
 
-Last verified: 2026-07-23
+Last verified: 2026-08-03
 
 ## Runtime contract
 
@@ -18,8 +18,49 @@ run follows this sequence:
    approvals, cost fields, confidence, errors, and next actions.
 9. Add a durable audit event.
 
-The API never treats a proposed write as a completed write. The current runtime
-does not execute model-proposed database mutations.
+The API never treats a proposed write as a completed write. Agent output can now
+be converted into `proposed_dashboard_actions`, and only an explicit
+`/api/v1/actions/proposals/{id}/execute` call can execute an allowlisted
+low-risk internal tool. Higher-risk proposals create approvals instead.
+
+## Conversation orchestration
+
+BrandOS now has a shared conversation foundation for Telegram and dashboard/API
+chat.
+
+Implemented first slice:
+
+- `conversation_sessions` stores durable brainstorming/planning threads.
+- `conversation_messages` stores founder, agent, system, and future tool turns.
+- `POST /api/v1/conversations/messages` creates a dashboard/API conversation
+  turn and routes it through the Brand Director runtime.
+- Telegram webhook text and `/idea` or benchmark/link captures can route through
+  the same agent runtime before replying.
+- Ordinary Telegram text is classified as `conversation`, not automatically
+  saved as an Idea.
+- `/idea` still creates a rough idea record before the agent reply.
+- Telegram outbound replies use the Bot API when a server-side bot token is
+  configured; tests and missing-token environments skip outbound sends safely.
+- Recognized model proposals such as `record_type="idea"` with
+  `action="create_rough_idea"` become inspectable dashboard action proposals
+  attached to the conversation session.
+
+The runtime still does not execute model-proposed public, paid, destructive, or
+canonical writes.
+
+## Proposed actions and tool calls
+
+BrandOS now has a narrow action layer for agentic work:
+
+- `proposed_dashboard_actions` records what the agent wants to do, why, the
+  target, risk level, status, and linked approval if needed.
+- `agent_tool_calls` records every attempted execution or approval gate with
+  input/output JSON and status.
+- `create_rough_idea` is the first safe executor. It can create an internal Idea
+  only when the proposal is low-risk.
+- Publishing, public scheduling, external outreach, canonical memory promotion,
+  sensitive founder-story use, paid research, and major calendar/content changes
+  are approval-gated and do not execute.
 
 ## Skill registry
 
@@ -93,6 +134,13 @@ Resumption is intentionally deferred until a reviewed job runner exists.
 | `POST` | `/api/v1/agent/runs` | Route and execute a governed request |
 | `GET` | `/api/v1/agent/runs/{id}` | Inspect one run |
 | `GET` | `/api/v1/agent/context-packs/{id}` | Inspect context and provenance |
+| `GET` | `/api/v1/conversations` | List conversation sessions |
+| `POST` | `/api/v1/conversations/messages` | Create a dashboard/API conversation turn |
+| `GET` | `/api/v1/conversations/{id}/messages` | Inspect conversation history |
+| `GET` | `/api/v1/actions/proposals` | List proposed dashboard actions |
+| `POST` | `/api/v1/actions/proposals` | Create an action proposal |
+| `POST` | `/api/v1/actions/proposals/{id}/execute` | Execute a safe action or create approval |
+| `GET` | `/api/v1/actions/tool-calls` | Inspect action execution/approval-gate ledger |
 
 ## Current limitations
 
@@ -102,3 +150,5 @@ Resumption is intentionally deferred until a reviewed job runner exists.
 - Context retrieval is not yet semantic.
 - Approved blocked runs do not auto-resume.
 - No public, paid, or destructive tool is available to the runtime.
+- The only currently executable tool is `create_rough_idea`; all richer research,
+  calendar, publishing, document, and media tools are deferred.

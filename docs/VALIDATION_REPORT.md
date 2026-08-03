@@ -196,3 +196,41 @@ baseline.
 No live-data restore was performed. Real-device PWA install/offline testing,
 automated screen-reader/accessibility testing, and Core Web Vitals collection are
 not claimed and remain public-release gates.
+
+## Agentic conversation and proposed-action increment
+
+Date: 2026-08-03
+
+This increment added the BrandOS conversation foundation, Telegram-to-agent
+routing, memory graph backend, and the proposed dashboard action/tool-call layer.
+
+| Check | Result |
+|---|---|
+| API lint | `.venv\Scripts\python.exe -m ruff check app tests` passed |
+| API tests | `.venv\Scripts\python.exe -m pytest -q` returned 40 passed |
+| Alembic head | `a7c4e5f6b8d9 (head)` |
+| In-memory migration | `alembic upgrade head` applied through `add agent actions and tool calls` |
+
+The only executable agent tool in this slice is the low-risk
+`create_rough_idea` internal write. Public publishing, external outreach,
+canonical memory promotion, sensitive founder-story use, paid research, and major
+calendar/content changes create approvals instead of executing.
+
+## Agent Action Inbox UI increment
+
+Date: 2026-08-03
+
+This increment added a workspace page at `/actions` for visual review,
+execution, and approval of agent-proposed dashboard actions.
+
+| Check | Result |
+|---|---|
+| Web lint | `npm run lint:web` passed |
+| Web type check | `npm run typecheck` passed |
+| Web tests | `npm run test:web` returned 9 passed |
+| Production web build | `npm run build` passed and generated `/actions` |
+
+The UI can execute low-risk proposed actions, create approval gates for risky
+proposals, approve or reject linked pending approvals, inspect payload/result
+JSON, and view recent tool calls. Approved risky actions still do not execute
+externally until the matching adapter and resumable job runner exist.

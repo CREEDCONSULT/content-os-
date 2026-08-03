@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.routers import (
+    actions,
     agent,
     analytics,
     approvals,
@@ -17,6 +18,7 @@ from app.routers import (
     brand,
     calendar,
     content,
+    conversations,
     creator_intelligence,
     dashboard,
     health,
@@ -83,8 +85,10 @@ app.include_router(content.router)
 app.include_router(approvals.router)
 app.include_router(integrations.router)
 app.include_router(agent.router)
+app.include_router(actions.router)
 app.include_router(studio.router)
 app.include_router(calendar.router)
+app.include_router(conversations.router)
 app.include_router(production.router)
 app.include_router(assets.router)
 app.include_router(proof.router)

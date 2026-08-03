@@ -1,6 +1,7 @@
 import type {
   AgentRun,
   AgentRunList,
+  AgentToolCall,
   Approval,
   Asset,
   AnalyticsOverview,
@@ -15,6 +16,7 @@ import type {
   ContentBrief,
   ContentList,
   DashboardSummary,
+  DashboardActionExecutionResult,
   Experiment,
   GlobalSearchResult,
   HeartbeatRun,
@@ -24,6 +26,7 @@ import type {
   MemoryRecord,
   PipelineStatus,
   ProductionPlan,
+  ProposedDashboardActionList,
   ProofItem,
   SkillDefinition,
   Script,
@@ -144,6 +147,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ channel: "dashboard", ...payload }),
     }),
+  actionProposals: (status = "") => {
+    const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+    return request<ProposedDashboardActionList>(`/api/v1/actions/proposals${suffix}`);
+  },
+  executeActionProposal: (id: string) =>
+    request<DashboardActionExecutionResult>(`/api/v1/actions/proposals/${id}/execute`, {
+      method: "POST",
+    }),
+  actionToolCalls: () => request<AgentToolCall[]>("/api/v1/actions/tool-calls"),
   briefs: () => request<ContentBrief[]>("/api/v1/studio/briefs"),
   createBriefFromIdea: (
     ideaId: string,

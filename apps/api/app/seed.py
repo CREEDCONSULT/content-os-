@@ -54,6 +54,7 @@ from app.db.models import (
 from app.db.session import SessionLocal
 from app.schemas.contracts import IdeaScores
 from app.services.ideas import apply_scores
+from app.services.memory_graph import build_memory_graph
 
 BRAND_ID = str(uuid.uuid5(uuid.NAMESPACE_URL, "https://meziebrandos.local/brands/mr-c-mezie"))
 
@@ -1065,12 +1066,15 @@ def seed_database(db: Session, source_root: Path | None = None) -> dict[str, int
     authoring_seeded = seed_authoring(db, brand)
     planning_seeded = seed_planning_and_proof(db, brand)
     intelligence_seeded = seed_intelligence(db, brand)
+    graph = build_memory_graph(db)
     return {
         "documents_imported": imported,
         "skills_imported": skills_imported,
         "authoring_seeded": authoring_seeded,
         "planning_seeded": planning_seeded,
         "intelligence_seeded": intelligence_seeded,
+        "memory_graph_entities": graph.totals["knowledge_entities"],
+        "memory_graph_edges": graph.totals["knowledge_edges"],
     }
 
 
@@ -1083,7 +1087,9 @@ def main() -> None:
         f"{result['skills_imported']} skill definitions imported; "
         f"{result['authoring_seeded']} authoring workspace and "
         f"{result['planning_seeded']} planning workspace; "
-        f"{result['intelligence_seeded']} intelligence workspace seeded."
+        f"{result['intelligence_seeded']} intelligence workspace seeded; "
+        f"{result['memory_graph_entities']} graph entities and "
+        f"{result['memory_graph_edges']} graph edges routed."
     )
 
 

@@ -22,10 +22,12 @@ Interactive OpenAPI is available at `/docs` on a trusted local workstation.
 | `/api/v1/assets` | Rights-aware multipart upload and deduplicated listing |
 | `/api/v1/proof` | Evidence and permission-aware proof ledger |
 | `/api/v1/agent` | Skill catalog, transparent runs, context packs |
+| `/api/v1/actions` | Agent-proposed dashboard actions and tool-call ledger |
 | `/api/v1/approvals` | Pending decisions and auditable approval/rejection |
+| `/api/v1/conversations` | Shared Telegram/dashboard conversation sessions and turns |
 | `/api/v1/memory` | Memory records, lexical retrieval, vault initialization/sync/events |
 | `/api/v1/intelligence` | Creator watchlist and benchmark teardown |
-| `/api/v1/telegram` | Signed webhook, fixture capture, message ledger |
+| `/api/v1/telegram` | Signed webhook, fixture capture, agent-backed replies, message ledger |
 | `/api/v1/heartbeat` | Manual runs, schedule settings, daily briefs |
 | `/api/v1/analytics` | Metrics, partial-row CSV import, insights, experiments |
 | `/api/v1/integrations` | Redacted adapter status |
@@ -49,7 +51,12 @@ referrer policy, and `Cache-Control: no-store` for `/api` responses.
 
 - Never treat a `Demo`, mock, partial, disabled, or pending record as live.
 - A successful model response is still only a proposal until policy and approval pass.
+- Low-risk proposals can execute only through allowlisted action executors; the
+  first enabled executor is `create_rough_idea`.
+- Risky action execution creates a pending approval and a blocked tool-call log.
 - Publishing is unavailable; no route silently performs a public action.
+- Ordinary Telegram text enters the conversation lane; `/idea` is required for
+  immediate rough idea creation.
 - Global search excludes restricted memory and requires at least two characters.
 - Offline replay calls the ordinary idea endpoint, so it cannot bypass validation.
 - Provider credentials are server-only and integration status is redacted.

@@ -39,3 +39,25 @@ brand documents.
 
 This is an honest MVP fallback for unavailable pgvector. It does not claim semantic
 embedding quality.
+
+## Knowledge graph
+
+BrandOS now has a dedicated memory graph target described in
+[BRANDOS_MEMORY_GRAPH_SPEC.md](BRANDOS_MEMORY_GRAPH_SPEC.md).
+
+Implemented first slice:
+
+- `knowledge_entities` stores normalized people, projects, platforms, pillars,
+  audience segments, sources, campaigns, and other graph nodes.
+- `knowledge_edges` stores typed relationships between entities, memory records,
+  and operational BrandOS records.
+- `POST /api/v1/memory/graph/extract` builds deterministic graph edges from
+  existing structured records without requiring embeddings or AI extraction.
+- API startup seeding also routes deterministic graph data so seeded deployments
+  do not boot with empty graph tables.
+- `GET /api/v1/memory/graph/neighborhood` returns nearby linked records for graph
+  navigation.
+- `GET /api/v1/memory/graph/search` searches graph entities and edges.
+
+CreedAI remains external/read-only-by-default. BrandOS graph records must not be
+merged into the existing CreedAI vault without an explicit migration plan.

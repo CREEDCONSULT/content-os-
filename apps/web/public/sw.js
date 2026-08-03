@@ -1,5 +1,5 @@
 const CACHE_NAME = "mezie-brandos-shell-v2";
-const APP_SHELL = ["/login", "/dashboard", "/ideas", "/manifest.webmanifest"];
+const APP_SHELL = ["/login", "/dashboard", "/ideas", "/actions", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

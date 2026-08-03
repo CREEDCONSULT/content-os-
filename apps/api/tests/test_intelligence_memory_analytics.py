@@ -4,8 +4,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from sqlalchemy import select
 
 from app.core.config import Settings, get_settings
+from app.db.models import ContentItem
 from app.main import app
 
 
@@ -57,6 +59,83 @@ def test_vault_sync_exports_imports_and_preserves_canonical_conflict(
         assert conflicted.status_code == 200
         assert conflicted.json()["conflicts"] >= 1
         assert canonical_path.read_text(encoding="utf-8") == changed
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+
+def test_memory_graph_extracts_entities_edges_and_neighborhood(
+    authenticated_client: TestClient,
+    db,
+    tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path)
+    app.dependency_overrides[get_settings] = lambda: settings
+    try:
+        synced = authenticated_client.post("/api/v1/memory/vault/sync")
+        assert synced.status_code == 200
+
+        extracted = authenticated_client.post("/api/v1/memory/graph/extract")
+        assert extracted.status_code == 200
+        payload = extracted.json()
+        assert payload["entities_created"] > 0
+        assert payload["edges_created"] > 0
+        assert payload["totals"]["knowledge_entities"] >= payload["entities_created"]
+        assert payload["totals"]["knowledge_edges"] >= payload["edges_created"]
+
+        repeated = authenticated_client.post("/api/v1/memory/graph/extract")
+        assert repeated.status_code == 200
+        assert repeated.json()["edges_reused"] > 0
+
+        platform_entities = authenticated_client.get(
+            "/api/v1/memory/entities",
+            params={"entity_type": "platform"},
+        )
+        assert platform_entities.status_code == 200
+        assert platform_entities.json()
+
+        graph_search = authenticated_client.get(
+            "/api/v1/memory/graph/search",
+            params={"q": "BrandOS"},
+        )
+        assert graph_search.status_code == 200
+        assert graph_search.json()
+
+        content_item = db.scalar(select(ContentItem).limit(1))
+        assert content_item is not None
+        neighborhood = authenticated_client.get(
+            "/api/v1/memory/graph/neighborhood",
+            params={"node_type": "content_item", "node_id": content_item.id},
+        )
+        assert neighborhood.status_code == 200
+        neighborhood_payload = neighborhood.json()
+        assert neighborhood_payload["edges"]
+        assert neighborhood_payload["related_nodes"]
+
+        campaign = authenticated_client.post(
+            "/api/v1/memory/entities",
+            json={
+                "entity_type": "campaign",
+                "name": "Memory Graph Launch",
+                "description": "Manual graph seed for launch planning.",
+                "confidence": 0.8,
+            },
+        )
+        assert campaign.status_code == 201
+        target = platform_entities.json()[0]
+        edge = authenticated_client.post(
+            "/api/v1/memory/edges",
+            json={
+                "source_type": "knowledge_entity",
+                "source_id": campaign.json()["id"],
+                "relationship_type": "belongs_to",
+                "target_type": "knowledge_entity",
+                "target_id": target["id"],
+                "label": "Memory Graph Launch belongs to the selected platform context",
+                "confidence": 0.8,
+            },
+        )
+        assert edge.status_code == 201
+        assert edge.json()["relationship_type"] == "belongs_to"
     finally:
         app.dependency_overrides.pop(get_settings, None)
 
@@ -159,6 +238,50 @@ def test_telegram_webhook_verifies_secret_sender_and_idempotency(
         )
         assert duplicate.status_code == 200
         assert duplicate.json()["id"] == captured.json()["id"]
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+
+def test_telegram_ordinary_text_routes_to_conversation_agent(
+    authenticated_client: TestClient,
+    tmp_path: Path,
+) -> None:
+    settings = _settings(
+        tmp_path,
+        telegram_enabled=True,
+        telegram_webhook_secret=SecretStr("telegram-test-secret"),
+        telegram_allowed_user_ids=[42],
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    try:
+        captured = authenticated_client.post(
+            "/api/v1/telegram/webhook",
+            headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-test-secret"},
+            json={
+                "update_id": 9010,
+                "message": {
+                    "message_id": 18,
+                    "from": {"id": 42},
+                    "chat": {"id": 4242},
+                    "text": "I want to brainstorm a builder discipline talking-head series.",
+                },
+            },
+        )
+        assert captured.status_code == 200
+        payload = captured.json()
+        assert payload["classification"] == "conversation"
+        assert payload["created_record_type"] is None
+        assert "BrandOS agent" in payload["response_text"]
+
+        sessions = authenticated_client.get("/api/v1/conversations?channel=telegram")
+        assert sessions.status_code == 200
+        assert sessions.json()["total"] == 1
+        session = sessions.json()["items"][0]
+        assert session["external_thread_id"] == "4242"
+
+        messages = authenticated_client.get(f"/api/v1/conversations/{session['id']}/messages")
+        assert messages.status_code == 200
+        assert {item["sender_type"] for item in messages.json()} == {"user", "agent"}
     finally:
         app.dependency_overrides.pop(get_settings, None)
 

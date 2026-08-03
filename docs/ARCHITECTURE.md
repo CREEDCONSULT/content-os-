@@ -15,6 +15,7 @@ FastAPI application
       +-- brand intelligence and context packs
       +-- ideas, content, scripts, production
       +-- agent runtime and skills
+      +-- conversations and Telegram agent routing
       +-- memory, research, analytics, proof
       +-- integration adapters
       |
@@ -37,6 +38,8 @@ FastAPI heartbeat worker
 - High-risk actions call one backend approval service.
 - Slow work is represented by idempotent database jobs before a separate queue is justified.
 - Every meaningful agent run records intent, context, skills, tools, model alias, cost, confidence, writes, approvals, errors, and next actions.
+- Telegram and dashboard/API chat share the same conversation session/message
+  ledger, proposed-action queue, and narrow safe-tool executor.
 
 ## Frontend
 

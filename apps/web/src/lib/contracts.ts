@@ -290,6 +290,55 @@ export type AgentRunList = {
   total: number;
 };
 
+export type RiskLevel = "low" | "medium" | "high" | "critical";
+
+export type ProposedDashboardAction = {
+  id: string;
+  session_id: string | null;
+  agent_run_id: string | null;
+  action_type: string;
+  target_type: string | null;
+  target_id: string | null;
+  payload: Record<string, unknown>;
+  rationale: string;
+  risk_level: RiskLevel;
+  status: string;
+  approval_id: string | null;
+  executed_at: string | null;
+  result_json: Record<string, unknown>;
+  error: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProposedDashboardActionList = {
+  items: ProposedDashboardAction[];
+  total: number;
+};
+
+export type AgentToolCall = {
+  id: string;
+  session_id: string | null;
+  agent_run_id: string | null;
+  tool_name: string;
+  tool_type: string;
+  input_json: Record<string, unknown>;
+  output_json: Record<string, unknown>;
+  status: string;
+  cost_estimate: number;
+  approval_id: string | null;
+  error: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DashboardActionExecutionResult = {
+  action: ProposedDashboardAction;
+  tool_call: AgentToolCall;
+};
+
 export type ContentBrief = {
   id: string;
   idea_id: string;

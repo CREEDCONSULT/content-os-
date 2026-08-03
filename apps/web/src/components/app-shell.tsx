@@ -15,6 +15,7 @@ import {
   Clapperboard,
   FilePenLine,
   FolderArchive,
+  Inbox,
   Lightbulb,
   LogOut,
   Menu,
@@ -52,6 +53,7 @@ const navigation = [
   { href: "/intelligence", label: "Daily intelligence", icon: Activity },
   { href: "/analytics", label: "Analytics & learning", icon: BarChart3 },
   { href: "/agent", label: "Agent console", icon: Bot },
+  { href: "/actions", label: "Action inbox", icon: Inbox },
   { href: "/approvals", label: "Approval queue", icon: ShieldCheck },
 ];
 

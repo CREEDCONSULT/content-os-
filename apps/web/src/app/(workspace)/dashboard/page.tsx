@@ -129,6 +129,15 @@ export default function DashboardPage() {
               <p className="mt-4 text-xs leading-5 text-muted">
                 Agent actions remain bounded by approval, provider, budget, and provenance contracts.
               </p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Link className="button-secondary min-h-9 text-xs" href="/agent">
+                  Agent console
+                </Link>
+                <Link className="button-primary min-h-9 text-xs" href="/actions">
+                  Action inbox
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </div>
             </div>
           </section>
 

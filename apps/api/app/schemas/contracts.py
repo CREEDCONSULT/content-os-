@@ -358,6 +358,129 @@ class AgentRunList(BaseModel):
     total: int
 
 
+class ConversationTurnCreate(BaseModel):
+    session_id: str | None = None
+    channel: str = Field(default="dashboard", pattern="^(dashboard|telegram|voice|api)$")
+    external_thread_id: str | None = Field(default=None, max_length=160)
+    message_type: str = Field(default="text", pattern="^(text|voice|image|file|link)$")
+    content_text: str = Field(min_length=1, max_length=20_000)
+    content_json: dict[str, Any] = Field(default_factory=dict)
+    source_reference: str | None = Field(default=None, max_length=800)
+
+
+class ConversationSessionView(ORMModel):
+    id: str
+    channel: str
+    external_thread_id: str
+    title: str
+    status: str
+    current_intent: str | None
+    active_agent: str
+    memory_scope: str
+    last_message_at: datetime
+    summary: str
+    open_questions: list[str]
+    proposed_action_count: int
+    approval_count: int
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationMessageView(ORMModel):
+    id: str
+    session_id: str
+    channel: str
+    sender_type: str
+    sender_id: str
+    message_type: str
+    content_text: str
+    content_json: dict[str, Any]
+    source_reference: str | None
+    telegram_update_id: str | None
+    telegram_message_id: str | None
+    attachment_ids: list[str]
+    agent_run_id: str | None
+    sensitivity: str
+    status: str
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationList(BaseModel):
+    items: list[ConversationSessionView]
+    total: int
+
+
+class ConversationTurnResult(BaseModel):
+    session: ConversationSessionView
+    user_message: ConversationMessageView
+    agent_message: ConversationMessageView | None
+    agent_run: AgentRunView | None
+    reply_text: str
+    outbound: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProposedDashboardActionCreate(BaseModel):
+    session_id: str | None = None
+    agent_run_id: str | None = None
+    action_type: str = Field(min_length=3, max_length=100)
+    target_type: str | None = Field(default=None, max_length=80)
+    target_id: str | None = Field(default=None, max_length=120)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    rationale: str = Field(min_length=3, max_length=5000)
+    risk_level: RiskLevel = RiskLevel.LOW
+    is_demo: bool = False
+
+
+class AgentToolCallView(ORMModel):
+    id: str
+    session_id: str | None
+    agent_run_id: str | None
+    tool_name: str
+    tool_type: str
+    input_json: dict[str, Any]
+    output_json: dict[str, Any]
+    status: str
+    cost_estimate: float
+    approval_id: str | None
+    error: str | None
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProposedDashboardActionView(ORMModel):
+    id: str
+    session_id: str | None
+    agent_run_id: str | None
+    action_type: str
+    target_type: str | None
+    target_id: str | None
+    payload: dict[str, Any]
+    rationale: str
+    risk_level: RiskLevel
+    status: str
+    approval_id: str | None
+    executed_at: datetime | None
+    result_json: dict[str, Any]
+    error: str | None
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProposedDashboardActionList(BaseModel):
+    items: list[ProposedDashboardActionView]
+    total: int
+
+
+class DashboardActionExecutionResult(BaseModel):
+    action: ProposedDashboardActionView
+    tool_call: AgentToolCallView
+
+
 class BriefFromIdea(BaseModel):
     platform: str = Field(default="LinkedIn", min_length=2, max_length=60)
     format: str = Field(default="Post", min_length=2, max_length=80)
@@ -752,6 +875,114 @@ class MemorySearchResult(BaseModel):
     excerpt: str
     authority: str
     source_path: str | None
+    score: float
+    confidence: float
+    is_demo: bool
+
+
+class KnowledgeEntityCreate(BaseModel):
+    entity_type: str = Field(min_length=2, max_length=80)
+    name: str = Field(min_length=2, max_length=240)
+    slug: str | None = Field(default=None, max_length=240)
+    description: str = Field(default="", max_length=20_000)
+    aliases: list[str] = Field(default_factory=list, max_length=40)
+    canonical_status: CanonicalStatus = CanonicalStatus.WORKING
+    sensitivity: str = Field(default="internal", max_length=60)
+    confidence: float = Field(default=0.5, ge=0, le=1)
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    is_demo: bool = False
+
+
+class KnowledgeEntityView(ORMModel):
+    id: str
+    entity_type: str
+    name: str
+    slug: str
+    description: str
+    aliases: list[str]
+    canonical_status: CanonicalStatus
+    sensitivity: str
+    confidence: float
+    provenance: dict[str, Any]
+    first_seen_at: datetime
+    last_seen_at: datetime
+    review_at: datetime | None
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class KnowledgeEdgeCreate(BaseModel):
+    source_type: str = Field(min_length=2, max_length=80)
+    source_id: str = Field(min_length=1, max_length=120)
+    target_type: str = Field(min_length=2, max_length=80)
+    target_id: str = Field(min_length=1, max_length=120)
+    relationship_type: str = Field(min_length=2, max_length=80)
+    label: str = Field(default="", max_length=240)
+    evidence: list[dict[str, Any]] = Field(default_factory=list, max_length=50)
+    confidence: float = Field(default=0.5, ge=0, le=1)
+    canonical_status: CanonicalStatus = CanonicalStatus.WORKING
+    sensitivity: str = Field(default="internal", max_length=60)
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    created_by: str = Field(default="user", max_length=120)
+    is_demo: bool = False
+
+
+class KnowledgeEdgeView(ORMModel):
+    id: str
+    source_type: str
+    source_id: str
+    target_type: str
+    target_id: str
+    relationship_type: str
+    label: str
+    evidence: list[dict[str, Any]]
+    confidence: float
+    canonical_status: CanonicalStatus
+    sensitivity: str
+    provenance: dict[str, Any]
+    created_by: str
+    approved_by: str | None
+    approved_at: datetime | None
+    valid_from: datetime | None
+    valid_until: datetime | None
+    review_at: datetime | None
+    is_demo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class MemoryGraphExtractionResult(BaseModel):
+    brand_id: str
+    entities_created: int
+    entities_reused: int
+    edges_created: int
+    edges_reused: int
+    totals: dict[str, int]
+    notes: list[str] = Field(default_factory=list)
+
+
+class GraphRelatedNode(BaseModel):
+    node_type: str
+    node_id: str
+    title: str
+    subtitle: str | None = None
+    href: str | None = None
+
+
+class MemoryGraphNeighborhood(BaseModel):
+    node_type: str
+    node_id: str
+    edges: list[KnowledgeEdgeView]
+    related_nodes: list[GraphRelatedNode]
+
+
+class MemoryGraphSearchResult(BaseModel):
+    id: str
+    record_type: str
+    title: str
+    excerpt: str
+    authority: str
     score: float
     confidence: float
     is_demo: bool

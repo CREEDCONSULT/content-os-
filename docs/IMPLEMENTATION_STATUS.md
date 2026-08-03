@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-07-23
+Last updated: 2026-08-03
 
 Status labels: `not started`, `in progress`, `implemented`, `verified`, `blocked`.
 
@@ -12,12 +12,12 @@ Status labels: `not started`, `in progress`, `implemented`, `verified`, `blocked
 | 1 - Foundation | verified | Next.js and FastAPI shells, PostgreSQL, Alembic, local authentication, premium responsive shell, deterministic seed, Docker Compose, and health checks pass | Local bootstrap credentials must be rotated before remote exposure |
 | 2 - Brand Intelligence | verified | 52 source documents imported with immutable versions, provenance, canonical status, detail views, and search | Embedding retrieval is disabled; deterministic lexical retrieval is connected |
 | 3 - Ideas and Pipeline | verified | Ideas persist and score; seven seeded content items render in a compact five-lane UI backed by the full 15-state lifecycle; transitions and approvals are enforced in the API | External publishing remains deliberately unavailable |
-| 4 - Agent Runtime | verified | 30 typed skills, deterministic router, canonical context packs, mock and gated OpenAI providers, idempotent run ledger, budget and high-risk approvals, audit events, and Agent Console are connected | OpenAI path is not live-verified; approved runs do not auto-resume |
+| 4 - Agent Runtime | verified | 30 typed skills, deterministic router, canonical context packs, mock and gated OpenAI providers, idempotent run ledger, budget and high-risk approvals, audit events, Agent Console, Agent Action Inbox UI, shared conversation sessions/messages, dashboard/API conversation turns, Telegram-to-agent routing, proposed dashboard actions, tool-call ledger, and safe `create_rough_idea` execution are connected | OpenAI path is not live-verified; approved runs do not auto-resume; richer research, calendar, publishing, document, and media tools are still deferred |
 | 5 - Brief and Script | verified | Linked briefs, immutable script versions, scored hooks, manual fact checks, financial-language blocking, exact-version approvals, and the Script Studio pass API, migration, and production build gates | External research is not automated; hook scores are heuristic; rich-text collaboration is deferred |
 | 6 - Calendar and Production | verified | Weekly capacity plans, overbooking prevention, internal events, generated production plans, scenes, shots, logistics, server-computed readiness, mobile shoot checklist, asset ingestion, and reversible migration pass tests and live PostgreSQL smoke | External calendar sync and media transformation are intentionally deferred |
-| 7 - Memory and Vault | verified | Persistent dedicated vault, 14-area folder tree, canonical/approved export, founder-note import, Idea write-back, checksum conflicts, sync ledger, lexical retrieval, and context-pack memory passed local and live tests | pgvector/embedding and optional Creed Memory sync remain disabled pending configuration |
+| 7 - Memory and Vault | verified | Persistent dedicated vault, 14-area folder tree, canonical/approved export, founder-note import, Idea write-back, checksum conflicts, sync ledger, lexical retrieval, context-pack memory, BrandOS memory graph spec, knowledge entities/edges, deterministic graph extraction, graph search, graph neighborhood API, and idempotent graph tests | pgvector/embedding, visual graph UI, graph-generated wiki indexes, and optional Creed Memory sync remain disabled/deferred pending configuration |
 | 8 - Creator Intelligence | verified | Tiered watchlist, URL/source records, evidence-aware teardown, protected identity split, eight-word copying safeguard, and original Mezie adaptations are connected | Apify, media acquisition, and automated transcription remain disabled |
-| 9 - Telegram | verified | Signed webhook, constant-time secret check, sender allowlist, update idempotency, text/link/voice states, dashboard write-back, and visibly labeled fixture simulator pass tests | Live bot credentials and outbound Telegram responses are not configured |
+| 9 - Telegram | verified | Signed webhook, constant-time secret check, sender allowlist, update idempotency, text/link/voice states, ordinary text conversation routing, `/idea` rough capture, benchmark/link capture, agent-backed response text, safe outbound Bot API adapter, dashboard write-back, and visibly labeled fixture simulator pass tests | Live bot credentials and live outbound Telegram responses are not verified in this environment |
 | 10 - Heartbeat | verified | Manual and durable scheduler entry points, daily deduplication, canonical context, local creator/analytics review, transparent source/cost log, dashboard brief, and vault export are connected | External freshness scan and Telegram summary are disabled; partial status discloses gaps |
 | 11 - Analytics and Proof | verified | Manual metric API, partial-row CSV normalization, non-causal insights, single-variable experiment ledger, permission-aware proof records, and evidence gates pass tests | Platform API ingestion and statistical-significance automation are deferred |
 | 12 - PWA and Hardening | verified | Installable manifest/service worker, narrow offline idea replay, authenticated global search, command palette, security headers, login limiting, safe backup/restore, isolated recovery proof, production gates, and operator documentation pass tests | Real-device PWA, automated accessibility/Core Web Vitals, R-012, and R-015 remain public-release gates |
@@ -56,10 +56,18 @@ Verified behavior:
 
 See [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for exact commands and results.
 
-The connected slices pass lint, type checking, 41 automated tests, the production
-frontend build, migration drift detection, Compose configuration, container health,
-authenticated API smoke checks, a tracked-file security gate, isolated database
-recovery, desktop browser QA, and mobile browser QA.
+The prior connected MVP slice passed lint, type checking, 41 automated tests, the
+production frontend build, migration drift detection, Compose configuration,
+container health, authenticated API smoke checks, a tracked-file security gate,
+isolated database recovery, desktop browser QA, and mobile browser QA.
+
+The 2026-08-03 agentic backend increment additionally passes API Ruff, 40 API
+tests, a single Alembic head at `a7c4e5f6b8d9`, and an in-memory migration
+upgrade through the action/tool-call tables.
+
+The Agent Action Inbox UI increment additionally passes web ESLint, TypeScript,
+Vitest, and a Next.js production build with `/actions` generated as a workspace
+route.
 
 The dependency gate is not release-clean: `npm audit` reports three high-severity
 advisories under the latest stable Next.js `16.2.11` dependency tree. npm proposes a
