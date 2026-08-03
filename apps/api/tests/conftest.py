@@ -15,6 +15,7 @@ os.environ["DATABASE_URL"] = "sqlite+pysqlite://"
 os.environ["AUTH_USERNAME"] = "mezie"
 os.environ["AUTH_PASSWORD"] = "brandos-local-dev"
 os.environ["SESSION_SECRET"] = "test-session-secret-with-enough-entropy"
+os.environ["AI_PROVIDER"] = "mock"
 
 from app.db.base import Base
 from app.db.session import get_db

@@ -19,7 +19,7 @@ from app.db.models import (
 )
 from app.schemas.contracts import AgentRunCreate
 from app.services.context import build_context_pack
-from app.services.providers import ProviderConfigurationError, provider_for
+from app.services.providers import ProviderConfigurationError, ProviderResponseError, provider_for
 from app.services.skills import load_skills, route_skill_slugs
 
 HIGH_RISK_INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
@@ -204,11 +204,19 @@ def execute_agent_run(
             context_markdown=pack.context_markdown,
             selected_skills=run.skills_used,
         )
-    except ProviderConfigurationError as exc:
+    except (ProviderConfigurationError, ProviderResponseError) as exc:
         run.status = "failed"
         run.error = str(exc)
-        run.summary = "Agent provider is not safely configured."
-        run.next_actions = ["Configure the exact missing server-side provider values."]
+        run.summary = (
+            "Agent provider is not safely configured."
+            if isinstance(exc, ProviderConfigurationError)
+            else "Agent provider request failed."
+        )
+        run.next_actions = [
+            "Configure the exact missing server-side provider values."
+            if isinstance(exc, ProviderConfigurationError)
+            else "Review the provider status, model alias, and request contract."
+        ]
         run.output_envelope = {
             "skill": "00_skill_router",
             "status": "failed",

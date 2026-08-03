@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.services.providers import OpenAIResponsesProvider
+
 
 def test_skill_registry_is_seeded_from_supplied_contracts(
     authenticated_client: TestClient,
@@ -95,3 +97,10 @@ def test_budget_and_public_action_create_backend_approval(
     approvals = authenticated_client.get("/api/v1/approvals?status=pending")
     assert approvals.status_code == 200
     assert len(approvals.json()) == 2
+
+
+def test_openai_strict_schema_defines_proposed_writes_items() -> None:
+    schema = OpenAIResponsesProvider._output_schema()
+    proposed_writes = schema["properties"]["proposed_writes"]["items"]
+    assert proposed_writes["additionalProperties"] is False
+    assert proposed_writes["required"] == ["record_type", "action", "rationale"]

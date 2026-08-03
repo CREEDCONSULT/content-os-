@@ -80,26 +80,9 @@ class OpenAIResponsesProvider:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def generate(
-        self,
-        *,
-        intent: str,
-        raw_input: dict[str, Any],
-        context_markdown: str,
-        selected_skills: list[str],
-    ) -> ProviderResult:
-        key = (
-            self.settings.openai_api_key.get_secret_value().strip()
-            if self.settings.openai_api_key
-            else ""
-        )
-        model = (self.settings.brand_fast_model or "").strip()
-        if not key:
-            raise ProviderConfigurationError("OPENAI_API_KEY is required for AI_PROVIDER=openai.")
-        if not model:
-            raise ProviderConfigurationError("BRAND_FAST_MODEL is required for AI_PROVIDER=openai.")
-
-        output_schema = {
+    @staticmethod
+    def _output_schema() -> dict[str, Any]:
+        return {
             "type": "object",
             "properties": {
                 "summary": {"type": "string"},
@@ -125,7 +108,19 @@ class OpenAIResponsesProvider:
                         "additionalProperties": False,
                     },
                 },
-                "proposed_writes": {"type": "array", "items": {"type": "object"}},
+                "proposed_writes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "record_type": {"type": "string"},
+                            "action": {"type": "string"},
+                            "rationale": {"type": "string"},
+                        },
+                        "required": ["record_type", "action", "rationale"],
+                        "additionalProperties": False,
+                    },
+                },
                 "warnings": {"type": "array", "items": {"type": "string"}},
                 "next_actions": {"type": "array", "items": {"type": "string"}},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
@@ -140,6 +135,26 @@ class OpenAIResponsesProvider:
             ],
             "additionalProperties": False,
         }
+
+    def generate(
+        self,
+        *,
+        intent: str,
+        raw_input: dict[str, Any],
+        context_markdown: str,
+        selected_skills: list[str],
+    ) -> ProviderResult:
+        key = (
+            self.settings.openai_api_key.get_secret_value().strip()
+            if self.settings.openai_api_key
+            else ""
+        )
+        model = (self.settings.brand_fast_model or "").strip()
+        if not key:
+            raise ProviderConfigurationError("OPENAI_API_KEY is required for AI_PROVIDER=openai.")
+        if not model:
+            raise ProviderConfigurationError("BRAND_FAST_MODEL is required for AI_PROVIDER=openai.")
+
         payload = {
             "model": model,
             "store": False,
@@ -171,7 +186,7 @@ class OpenAIResponsesProvider:
                     "type": "json_schema",
                     "name": "brandos_agent_output",
                     "strict": True,
-                    "schema": output_schema,
+                    "schema": self._output_schema(),
                 }
             },
         }
