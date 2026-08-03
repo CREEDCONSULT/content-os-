@@ -35,8 +35,11 @@ import {
   queueOfflineIdea,
 } from "@/lib/offline-ideas";
 
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+  process.env.NODE_ENV === "production"
+    ? ""
+    : (configuredApiBaseUrl ?? "http://localhost:8000");
 
 export class ApiError extends Error {
   constructor(

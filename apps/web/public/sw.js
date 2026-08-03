@@ -1,4 +1,4 @@
-const CACHE_NAME = "mezie-brandos-shell-v1";
+const CACHE_NAME = "mezie-brandos-shell-v2";
 const APP_SHELL = ["/login", "/dashboard", "/ideas", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
