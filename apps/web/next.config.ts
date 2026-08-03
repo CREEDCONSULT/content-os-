@@ -10,6 +10,26 @@ const apiOrigin = (() => {
   }
 })();
 
+const optionalOrigin = (value: string | undefined) => {
+  if (!value) return null;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+};
+
+const toWebSocketOrigin = (origin: string) =>
+  origin.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+
+const convexOrigin = optionalOrigin(process.env.NEXT_PUBLIC_CONVEX_URL);
+const connectSources = [
+  "'self'",
+  apiOrigin,
+  ...(convexOrigin ? [convexOrigin, toWebSocketOrigin(convexOrigin)] : []),
+].join(" ");
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -19,7 +39,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}`,
+  `connect-src ${connectSources}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "form-action 'self'",
