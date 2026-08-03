@@ -18,7 +18,7 @@ Use these Railway build/deploy settings:
 - Source repo: `CREEDCONSULT/content-os-`
 - Branch: `main`
 - Root directory: leave blank / repo root
-- Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=apps/api/Dockerfile`
+- Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=/apps/api/Dockerfile`
 - Healthcheck path: `/health` from the root `railway.json`
 - Public networking: generate a Railway HTTPS domain
 - Volume: mount one Railway volume at `/app/data`
@@ -36,7 +36,7 @@ SESSION_TTL_SECONDS=43200
 LOGIN_RATE_LIMIT_ATTEMPTS=8
 LOGIN_RATE_LIMIT_WINDOW_SECONDS=300
 
-DATABASE_URL=${{Postgres.DATABASE_URL}}
+DATABASE_URL=postgresql+psycopg://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
 SOURCE_DOCUMENTS_PATH=/app/source-documents
 OBJECT_STORAGE_PATH=/app/data/storage
 BRANDOS_VAULT_PATH=/app/data/vault
@@ -77,7 +77,7 @@ Use these Railway build/deploy settings:
 - Source repo: `CREEDCONSULT/content-os-`
 - Branch: `main`
 - Root directory: leave blank / repo root
-- Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=apps/web/Dockerfile`
+- Dockerfile path variable: `RAILWAY_DOCKERFILE_PATH=/apps/web/Dockerfile`
 - Healthcheck path: `/health` from the root `railway.json`
 - Public networking: generate a Railway HTTPS domain
 
