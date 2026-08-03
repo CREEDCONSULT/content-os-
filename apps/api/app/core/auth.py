@@ -11,6 +11,10 @@ from app.core.config import Settings, get_settings
 COOKIE_NAME = "brandos_session"
 
 
+def session_cookie_samesite(settings: Settings) -> str:
+    return "none" if settings.secure_cookies else "lax"
+
+
 @dataclass(frozen=True)
 class UserPrincipal:
     username: str

@@ -11,6 +11,7 @@ from app.core.auth import (
     UserPrincipal,
     create_session_token,
     require_user,
+    session_cookie_samesite,
     verify_credentials,
 )
 from app.core.config import Settings, get_settings
@@ -69,7 +70,7 @@ def login(
         max_age=settings.session_ttl_seconds,
         httponly=True,
         secure=settings.secure_cookies,
-        samesite="lax",
+        samesite=session_cookie_samesite(settings),
         path="/",
     )
     return AuthResponse(
@@ -92,6 +93,12 @@ def me(user: UserPrincipal = Depends(require_user)) -> AuthUser:
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response) -> Response:
-    response.delete_cookie(COOKIE_NAME, path="/")
+def logout(response: Response, settings: Settings = Depends(get_settings)) -> Response:
+    response.delete_cookie(
+        COOKIE_NAME,
+        path="/",
+        secure=settings.secure_cookies,
+        httponly=True,
+        samesite=session_cookie_samesite(settings),
+    )
     return response

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import Settings, get_settings
+from app.main import app
 from app.routers.auth import _clear_failures
 
 
@@ -35,6 +37,25 @@ def test_login_cookie_and_security_headers(client: TestClient) -> None:
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["x-request-id"]
+
+
+def test_secure_login_cookie_allows_cross_site_fetches(client: TestClient) -> None:
+    def override_settings() -> Settings:
+        return Settings(secure_cookies=True)
+
+    app.dependency_overrides[get_settings] = override_settings
+    try:
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "mezie", "password": "brandos-local-dev"},
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 200
+    cookie = response.headers["set-cookie"].lower()
+    assert "secure" in cookie
+    assert "samesite=none" in cookie
 
 
 def test_login_attempts_are_bounded(client: TestClient) -> None:
