@@ -16,6 +16,8 @@ COPY apps/api/migrations ./migrations
 COPY apps/api/app ./app
 COPY docs/source ./source-documents
 
+ENV PORT=8000
+
 EXPOSE 8000
 
-CMD ["sh", "-c", ".venv/bin/alembic upgrade head && .venv/bin/python -m app.seed && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", ".venv/bin/alembic upgrade head && .venv/bin/python -m app.seed && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

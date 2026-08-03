@@ -41,6 +41,12 @@ Do not expose this build publicly while `R-012` and `R-015` remain active. A
 public release needs a supported dependency remediation and a reviewed remote
 identity/access perimeter, plus real-device PWA/accessibility/performance evidence.
 
+## Railway private pilot
+
+Railway can be used for a password-gated private pilot with the API, web, and
+PostgreSQL services. Use `docs/RAILWAY_DEPLOYMENT.md` for the exact service
+layout, variables, volume mount, and Telegram webhook activation steps.
+
 ## Rollback
 
 Application rollback uses a previously built Git commit/image only when its
