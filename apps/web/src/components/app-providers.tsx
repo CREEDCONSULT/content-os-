@@ -1,10 +1,14 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { flushOfflineIdeas } from "@/lib/offline-ideas";
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convexClient = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -44,5 +48,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("online", replay);
   }, [queryClient]);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  const app = <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+
+  if (!convexClient) return app;
+  return <ConvexProvider client={convexClient}>{app}</ConvexProvider>;
 }
