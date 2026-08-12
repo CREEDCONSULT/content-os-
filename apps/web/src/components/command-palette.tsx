@@ -6,6 +6,70 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
+import type { GlobalSearchResult } from "@/lib/contracts";
+
+const routeResults: GlobalSearchResult[] = [
+  {
+    id: "route-dashboard",
+    record_type: "route",
+    title: "Command center",
+    excerpt: "Dashboard overview, operating posture, recent activity, and next work.",
+    href: "/dashboard",
+    authority: "navigation",
+    score: 6,
+    is_demo: false,
+  },
+  {
+    id: "route-agent",
+    record_type: "route",
+    title: "Agent console",
+    excerpt: "Run the Brand Director and inspect routed skills, sources, and proposals.",
+    href: "/agent",
+    authority: "navigation",
+    score: 6,
+    is_demo: false,
+  },
+  {
+    id: "route-actions",
+    record_type: "route",
+    title: "Action inbox",
+    excerpt: "Review, execute, or approval-gate agent-proposed dashboard actions.",
+    href: "/actions",
+    authority: "navigation",
+    score: 6,
+    is_demo: false,
+  },
+  {
+    id: "route-approvals",
+    record_type: "route",
+    title: "Approval queue",
+    excerpt: "Decide high-impact actions before public, paid, or sensitive execution.",
+    href: "/approvals",
+    authority: "navigation",
+    score: 6,
+    is_demo: false,
+  },
+  {
+    id: "route-calendar",
+    record_type: "route",
+    title: "Content calendar",
+    excerpt: "Plan internal production blocks, capacity, and rollout cadence.",
+    href: "/calendar",
+    authority: "navigation",
+    score: 5,
+    is_demo: false,
+  },
+  {
+    id: "route-benchmarks",
+    record_type: "route",
+    title: "Creator benchmarks",
+    excerpt: "Study creator mechanics without copying protected expression or identity.",
+    href: "/benchmarks",
+    authority: "navigation",
+    score: 5,
+    is_demo: false,
+  },
+];
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -17,6 +81,22 @@ export function CommandPalette() {
     enabled: open && normalizedQuery.length >= 2,
     staleTime: 15_000,
   });
+  const visibleResults =
+    normalizedQuery.length >= 2
+      ? [
+          ...routeResults
+            .filter((route) =>
+              `${route.title} ${route.excerpt} ${route.href}`
+                .toLowerCase()
+                .includes(normalizedQuery.toLowerCase()),
+            )
+            .map((route) => ({
+              ...route,
+              score: route.score + (route.title.toLowerCase().startsWith(normalizedQuery.toLowerCase()) ? 4 : 0),
+            })),
+          ...(searchQuery.data ?? []),
+        ].sort((a, b) => b.score - a.score)
+      : [];
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -89,7 +169,7 @@ export function CommandPalette() {
                 </p>
                 <span className="text-[0.65rem] text-faint">
                   <Command className="mr-1 inline size-3" />
-                  authenticated records only
+                  routes + authenticated records
                 </span>
               </div>
 
@@ -108,13 +188,13 @@ export function CommandPalette() {
                   {searchQuery.error.message}
                 </p>
               )}
-              {searchQuery.data?.length === 0 && (
+              {visibleResults.length === 0 && normalizedQuery.length >= 2 && !searchQuery.isPending && (
                 <p className="p-6 text-center text-sm text-muted">
                   No matching workspace records.
                 </p>
               )}
               <div className="space-y-1">
-                {searchQuery.data?.map((result) => (
+                {visibleResults.map((result) => (
                   <Link
                     key={`${result.record_type}-${result.id}`}
                     href={result.href}

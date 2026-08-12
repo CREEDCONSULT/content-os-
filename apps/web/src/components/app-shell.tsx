@@ -219,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <CommandPalette />
             <span className="hidden items-center gap-1.5 rounded-full border border-purple/25 bg-purple/7 px-3 py-1.5 text-[0.68rem] font-semibold text-purple sm:flex">
               <Sparkles className="size-3.5" />
-              AI: controlled mock
+              AI: governed agent
             </span>
             <Link href="/ideas" className="button-primary min-h-9 text-xs">
               <Lightbulb className="size-3.5" />
@@ -262,6 +262,7 @@ function NavigationLink({
     <Link
       href={href}
       onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "focus-ring group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition",
         active

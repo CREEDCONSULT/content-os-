@@ -783,6 +783,7 @@ export type Experiment = {
 export type GlobalSearchResult = {
   id: string;
   record_type:
+    | "route"
     | "brand_document"
     | "idea"
     | "content_item"

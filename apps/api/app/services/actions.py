@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import hashlib
+import json
+import re
+from datetime import UTC, datetime, time, timedelta
+from datetime import date as date_type
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -16,8 +20,14 @@ from app.db.models import (
     ApprovalStatus,
     AuditEvent,
     Brand,
+    CalendarEvent,
+    CanonicalStatus,
+    ContentItem,
     ConversationSession,
+    Experiment,
     Idea,
+    MemoryRecord,
+    PipelineStatus,
     ProposedDashboardAction,
     RiskLevel,
 )
@@ -27,7 +37,7 @@ from app.schemas.contracts import (
     ProposedDashboardActionCreate,
 )
 
-SAFE_ACTIONS = {"create_rough_idea"}
+SAFE_ACTIONS = {"create_rough_idea", "create_campaign_plan"}
 
 APPROVAL_REQUIRED_ACTIONS = {
     "analyze_external_document",
@@ -333,6 +343,365 @@ def _execute_create_rough_idea(
     return tool_call
 
 
+def _slug(value: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return normalized[:96] or "campaign"
+
+
+def _parse_date(value: object, fallback: date_type) -> date_type:
+    if isinstance(value, date_type):
+        return value
+    if isinstance(value, str):
+        try:
+            return date_type.fromisoformat(value[:10])
+        except ValueError:
+            return fallback
+    return fallback
+
+
+def _campaign_days(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    days = payload.get("days")
+    if not isinstance(days, list):
+        return []
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(days[:10], 1):
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or f"Campaign day {index}").strip()[:240]
+        normalized.append(
+            {
+                **item,
+                "day": int(item.get("day") or index),
+                "title": title or f"Campaign day {index}",
+                "platform": str(item.get("platform") or "LinkedIn")[:60],
+                "format": str(item.get("format") or "Post")[:80],
+                "pillar": str(item.get("pillar") or "Build")[:80],
+                "series": str(item.get("series") or "Building Creed")[:120],
+                "audience": str(
+                    item.get("audience") or payload.get("audience") or "Emerging Builder"
+                )[:160],
+                "objective": str(
+                    item.get("objective")
+                    or "Move the audience from inspiration into a specific builder action."
+                )[:240],
+                "status": str(item.get("status") or "brief"),
+                "priority": str(item.get("priority") or "high")[:30],
+            }
+        )
+    return normalized
+
+
+def _markdown_list(items: list[Any]) -> str:
+    if not items:
+        return "- Not supplied."
+    lines: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            label = item.get("source") or item.get("type") or item.get("title") or "item"
+            finding = item.get("finding") or item.get("summary") or item.get("impact") or item
+            lines.append(f"- **{label}:** {finding}")
+        else:
+            lines.append(f"- {item}")
+    return "\n".join(lines)
+
+
+def _render_campaign_markdown(payload: dict[str, Any], days: list[dict[str, Any]]) -> str:
+    strategy = (
+        payload.get("rollout_strategy")
+        if isinstance(payload.get("rollout_strategy"), dict)
+        else {}
+    )
+    thesis = (
+        str(payload.get("thesis"))
+        if payload.get("thesis")
+        else "Use visible systems, proof, and disciplined execution to build trust."
+    )
+    research_basis = (
+        payload.get("research_basis")
+        if isinstance(payload.get("research_basis"), list)
+        else []
+    )
+    experiments = (
+        payload.get("experiments")
+        if isinstance(payload.get("experiments"), list)
+        else []
+    )
+    sections = [
+        f"# {payload.get('campaign_name', '10-Day BrandOS Campaign')}",
+        "",
+        "## Campaign thesis",
+        thesis,
+        "",
+        "## Audience",
+        str(payload.get("audience") or "Emerging builders and operators."),
+        "",
+        "## Research and analysis basis",
+        _markdown_list(research_basis),
+        "",
+        "## Rollout strategy",
+        _markdown_list(
+            [
+                {"source": key.replace("_", " ").title(), "finding": value}
+                for key, value in strategy.items()
+            ]
+        ),
+        "",
+        "## 10-day rollout",
+    ]
+    for day in days:
+        sections.extend(
+            [
+                "",
+                f"### Day {day['day']}: {day['title']}",
+                f"- Date: {day.get('date', 'TBD')}",
+                f"- Platform / format: {day['platform']} / {day['format']}",
+                f"- Pillar / series: {day['pillar']} / {day['series']}",
+                f"- Objective: {day['objective']}",
+                f"- Hook: {day.get('hook', 'TBD')}",
+                f"- Core message: {day.get('core_message', 'TBD')}",
+                f"- Proof angle: {day.get('proof_angle', 'TBD')}",
+                f"- Research angle: {day.get('research_angle', 'TBD')}",
+                f"- Production notes: {day.get('production_notes', 'TBD')}",
+                f"- CTA: {day.get('cta', 'TBD')}",
+                f"- Success metric: {day.get('success_metric', 'TBD')}",
+            ]
+        )
+    sections.extend(
+        [
+            "",
+            "## Experiments",
+            _markdown_list(experiments),
+            "",
+            "## Approval boundaries",
+            _markdown_list(
+                payload.get("approval_boundaries")
+                if isinstance(payload.get("approval_boundaries"), list)
+                else []
+            ),
+        ]
+    )
+    return "\n".join(sections).strip() + "\n"
+
+
+def _safe_campaign_start(payload: dict[str, Any]) -> date_type:
+    tomorrow = datetime.now(UTC).date() + timedelta(days=1)
+    return _parse_date(payload.get("campaign_start"), tomorrow)
+
+
+def _calendar_block_for_day(
+    *,
+    campaign_start: date_type,
+    day: dict[str, Any],
+) -> tuple[datetime, datetime, str]:
+    day_date = _parse_date(
+        day.get("date"),
+        campaign_start + timedelta(days=max(0, int(day.get("day", 1)) - 1)),
+    )
+    start_at = datetime.combine(day_date, time(hour=14), tzinfo=UTC)
+    end_at = start_at + timedelta(hours=1)
+    notes = "\n".join(
+        [
+            f"Hook: {day.get('hook', 'TBD')}",
+            f"Core message: {day.get('core_message', 'TBD')}",
+            f"Production notes: {day.get('production_notes', 'TBD')}",
+            "Internal BrandOS planning block only; public scheduling remains approval-gated.",
+        ]
+    )
+    return start_at, end_at, notes
+
+
+def _execute_create_campaign_plan(
+    db: Session,
+    action: ProposedDashboardAction,
+    user: UserPrincipal,
+) -> AgentToolCall:
+    payload = dict(action.payload or {})
+    days = _campaign_days(payload)
+    if len(days) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="create_campaign_plan requires a payload.days array with 10 campaign days.",
+        )
+    campaign_name = str(payload.get("campaign_name") or "10-Day BrandOS Campaign")[:240]
+    campaign_start = _safe_campaign_start(payload)
+    markdown = _render_campaign_markdown(payload, days)
+    checksum = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    vault_path = (
+        f"02_Content_Strategy/Campaigns/"
+        f"{campaign_start.isoformat()}-{_slug(campaign_name)}-{action.id[:8]}.md"
+    )
+
+    memory = MemoryRecord(
+        brand_id=action.brand_id,
+        memory_type="campaign_plan",
+        title=campaign_name,
+        content=markdown,
+        canonical_status=CanonicalStatus.WORKING,
+        confidence=float(payload.get("confidence") or 0.82),
+        provenance={
+            "source": "agent_action",
+            "proposed_dashboard_action_id": action.id,
+            "agent_run_id": action.agent_run_id,
+        },
+        vault_path=vault_path,
+        content_checksum=checksum,
+        sensitivity="internal",
+        sync_status="database_only",
+        embedding_status="disabled",
+        is_demo=action.is_demo,
+    )
+    db.add(memory)
+    db.flush()
+
+    content_ids: list[str] = []
+    calendar_ids: list[str] = []
+    for day in days:
+        due_date = _parse_date(
+            day.get("date"),
+            campaign_start + timedelta(days=max(0, int(day["day"]) - 1)),
+        )
+        content = ContentItem(
+            brand_id=action.brand_id,
+            idea_id=None,
+            title=str(day["title"])[:240],
+            platform=str(day["platform"])[:60],
+            format=str(day["format"])[:80],
+            pillar=str(day["pillar"])[:80],
+            series=str(day["series"])[:120],
+            audience=str(day["audience"])[:160],
+            objective=str(day["objective"])[:240],
+            status=PipelineStatus.BRIEF,
+            priority=str(day["priority"])[:30],
+            due_date=due_date,
+            publish_at=None,
+            readiness_score=42,
+            approval_status=ApprovalStatus.NOT_REQUIRED,
+            blocker=(
+                "Needs final script, fact-check, and approval before production or publication."
+            ),
+            is_demo=action.is_demo,
+        )
+        db.add(content)
+        db.flush()
+        content_ids.append(content.id)
+        start_at, end_at, notes = _calendar_block_for_day(
+            campaign_start=campaign_start,
+            day=day,
+        )
+        event = CalendarEvent(
+            brand_id=action.brand_id,
+            content_item_id=content.id,
+            title=f"Prepare: {content.title[:220]}",
+            event_type="write",
+            start_at=start_at,
+            end_at=end_at,
+            timezone="America/Toronto",
+            status="planned",
+            capacity_units=1,
+            notes=notes,
+            is_demo=action.is_demo,
+        )
+        db.add(event)
+        db.flush()
+        calendar_ids.append(event.id)
+
+    experiment_ids: list[str] = []
+    experiments = payload.get("experiments")
+    if isinstance(experiments, list):
+        for item in experiments[:4]:
+            if not isinstance(item, dict):
+                continue
+            experiment = Experiment(
+                brand_id=action.brand_id,
+                title=str(item.get("title") or f"{campaign_name} experiment")[:240],
+                question=str(item.get("question") or "Which campaign variable improves saves?")[
+                    :5000
+                ],
+                hypothesis=str(
+                    item.get("hypothesis")
+                    or "A clearer proof-led hook should improve qualified saves and replies."
+                )[:5000],
+                variable=str(item.get("variable") or "hook framing")[:240],
+                control_conditions=list(
+                    dict.fromkeys(
+                        str(condition).strip()
+                        for condition in item.get(
+                            "control_conditions",
+                            ["Same topic", "Same format", "Same posting window"],
+                        )
+                        if str(condition).strip()
+                    )
+                )[:20]
+                or ["Same topic"],
+                platform=str(item.get("platform") or "LinkedIn")[:60],
+                content_type=str(item.get("content_type") or "Founder content")[:80],
+                expected_outcome=str(
+                    item.get("expected_outcome")
+                    or "Higher save rate and more substantive replies."
+                )[:5000],
+                success_metric=str(item.get("success_metric") or "Save rate")[:240],
+                measurement_start=_parse_date(item.get("measurement_start"), campaign_start),
+                measurement_end=_parse_date(
+                    item.get("measurement_end"),
+                    campaign_start + timedelta(days=10),
+                ),
+                status="planned",
+                confidence=0.0,
+                is_demo=action.is_demo,
+            )
+            db.add(experiment)
+            db.flush()
+            experiment_ids.append(experiment.id)
+
+    tool_call = AgentToolCall(
+        brand_id=action.brand_id,
+        session_id=action.session_id,
+        agent_run_id=action.agent_run_id,
+        tool_name=action.action_type,
+        tool_type="safe_internal_orchestration",
+        input_json=action.payload,
+        output_json={
+            "record_type": "campaign_plan",
+            "record_id": memory.id,
+            "campaign_name": campaign_name,
+            "content_item_ids": content_ids,
+            "calendar_event_ids": calendar_ids,
+            "experiment_ids": experiment_ids,
+            "vault_path": vault_path,
+            "boundary": "Internal planning only; public posting remains approval-gated.",
+        },
+        status="completed",
+        is_demo=action.is_demo,
+    )
+    db.add(tool_call)
+    action.status = "executed"
+    action.target_type = "campaign_plan"
+    action.target_id = memory.id
+    action.executed_at = datetime.now(UTC)
+    action.result_json = tool_call.output_json
+    db.add(
+        AuditEvent(
+            brand_id=action.brand_id,
+            event_type="campaign_plan.created",
+            actor=user.username,
+            target_type="campaign_plan",
+            target_id=memory.id,
+            summary=f'10-day campaign staged by agent action: "{campaign_name}"',
+            details={
+                "proposed_dashboard_action_id": action.id,
+                "agent_run_id": action.agent_run_id,
+                "content_item_count": len(content_ids),
+                "calendar_event_count": len(calendar_ids),
+                "experiment_count": len(experiment_ids),
+                "vault_path": vault_path,
+            },
+            is_demo=action.is_demo,
+        )
+    )
+    db.flush()
+    return tool_call
+
+
 def execute_dashboard_action(
     db: Session,
     action_id: str,
@@ -378,6 +747,13 @@ def execute_dashboard_action(
         db.refresh(tool_call)
         return DashboardActionExecutionResult(action=action, tool_call=tool_call)
 
+    if action.action_type == "create_campaign_plan":
+        tool_call = _execute_create_campaign_plan(db, action, user)
+        db.commit()
+        db.refresh(action)
+        db.refresh(tool_call)
+        return DashboardActionExecutionResult(action=action, tool_call=tool_call)
+
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         detail=f"No executor is registered for {action.action_type}.",
@@ -410,23 +786,50 @@ def _proposal_from_agent_write(
             "capture_idea",
         }:
             action_type = "create_rough_idea"
+        elif record_type in {"campaign", "campaign_plan"} and normalized_action in {
+            "create",
+            "create_campaign",
+            "create_campaign_plan",
+            "stage_campaign",
+            "stage_campaign_plan",
+        }:
+            action_type = "create_campaign_plan"
         else:
             return None
 
     payload: dict[str, Any] = {}
+    raw_payload = write.get("payload")
+    if isinstance(raw_payload, dict):
+        payload = dict(raw_payload)
+    elif isinstance(write.get("payload_json"), str):
+        try:
+            parsed_payload = json.loads(str(write["payload_json"]))
+            if isinstance(parsed_payload, dict):
+                payload = parsed_payload
+        except json.JSONDecodeError:
+            payload = {}
     if action_type == "create_rough_idea":
         raw_input = dict(run.input_envelope.get("raw_input") or {})
         content_text = str(raw_input.get("content_text") or raw_input.get("text") or "").strip()
+        if not content_text and isinstance(payload.get("raw_input"), str):
+            content_text = str(payload["raw_input"]).strip()
         if not content_text:
             return None
         payload = {
-            "title": _title_from_original_input(raw_input),
+            "title": str(payload.get("title") or _title_from_original_input(raw_input))[:240],
             "raw_input": content_text,
-            "source_type": raw_input.get("channel") or run.channel,
-            "source_reference": f"agent_run:{run.id}",
-            "audience": "Emerging Builder",
-            "platform_fit": [],
+            "source_type": payload.get("source_type") or raw_input.get("channel") or run.channel,
+            "source_reference": payload.get("source_reference") or f"agent_run:{run.id}",
+            "pillar": payload.get("pillar"),
+            "series": payload.get("series"),
+            "audience": payload.get("audience") or "Emerging Builder",
+            "platform_fit": payload.get("platform_fit") or [],
+            "strategic_objective": payload.get("strategic_objective"),
+            "urgency": payload.get("urgency") or "normal",
         }
+    elif action_type == "create_campaign_plan":
+        if len(_campaign_days(payload)) < 10:
+            return None
 
     risk_level = RiskLevel.LOW if action_type in SAFE_ACTIONS else RiskLevel.HIGH
     return ProposedDashboardActionCreate(
@@ -454,6 +857,17 @@ def create_actions_from_agent_run(
             continue
         proposal = _proposal_from_agent_write(write, run=run, session_id=session_id)
         if not proposal:
+            continue
+        existing = db.scalar(
+            select(ProposedDashboardAction).where(
+                ProposedDashboardAction.brand_id == run.brand_id,
+                ProposedDashboardAction.agent_run_id == run.id,
+                ProposedDashboardAction.action_type == proposal.action_type,
+                ProposedDashboardAction.rationale == proposal.rationale,
+            )
+        )
+        if existing:
+            created.append(existing)
             continue
         created.append(create_dashboard_action(db, proposal, user, commit=False))
     return created

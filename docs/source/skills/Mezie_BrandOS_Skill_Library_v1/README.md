@@ -100,6 +100,9 @@ The MVP should use one Brand Director agent with specialized skills. The Skill R
 30. **General Brand Assistant Skill** — `29_general_brand_assistant/SKILL.md`
    - Handle low-risk requests that do not require a specialist workflow while preserving brand context and routing learnings.
 
+31. **Mezie Content Cycle Development Skill** — `30_mezie_content_cycle_development/SKILL.md`
+   - Govern recurring research-to-publication content cycles, including strategy, research, ideation, scoring, briefs, scripts, creative direction, production planning, repurposing, publishing preparation, analytics, and learning records.
+
 ## Core Execution Chain
 
 ```text

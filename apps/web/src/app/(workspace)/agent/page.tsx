@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/page-header";
@@ -22,6 +23,7 @@ import { api } from "@/lib/api";
 import type { AgentRun } from "@/lib/contracts";
 
 const starterIntents = [
+  "Research and prepare a 10 day campaign and rollout strategy for the Mr. C. Mezie BrandOS launch",
   "Draft a LinkedIn script and three hooks about building BrandOS in public",
   "Review this idea for brand fit and missing evidence",
   "Prepare an internal production plan for the next Builder Walk",
@@ -40,7 +42,10 @@ export default function AgentConsolePage() {
       setSelectedRunId(run.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["agent", "runs"] }),
+        queryClient.invalidateQueries({ queryKey: ["actions"] }),
         queryClient.invalidateQueries({ queryKey: ["approvals"] }),
+        queryClient.invalidateQueries({ queryKey: ["calendar"] }),
+        queryClient.invalidateQueries({ queryKey: ["content"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]);
     },
@@ -65,7 +70,17 @@ export default function AgentConsolePage() {
         model_usd: Number(modelBudget) || 0,
         tool_usd: 0,
       },
-      raw_input: { requested_surface: "agent_console" },
+      raw_input: {
+        requested_surface: "agent_console",
+        content_text: intent.trim(),
+        force_web_research:
+          intent.toLowerCase().includes("research") ||
+          intent.toLowerCase().includes("campaign") ||
+          intent.toLowerCase().includes("rollout"),
+        desired_artifact: intent.toLowerCase().includes("campaign")
+          ? "10_day_campaign_rollout_strategy"
+          : "governed_agent_response",
+      },
     });
   };
 
@@ -292,6 +307,27 @@ function RunInspector({ run }: { run: AgentRun | null }) {
         </StatusPill>
       </div>
       <p className="mt-4 text-sm leading-6 text-muted">{run.summary}</p>
+      {run.proposed_writes.length > 0 && (
+        <div className="mt-5 rounded-xl border border-blue/25 bg-blue/7 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-blue">
+                {run.proposed_writes.length} dashboard proposal
+                {run.proposed_writes.length === 1 ? "" : "s"} staged
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted">
+                BrandOS has converted this run into reviewable actions. Execute safe
+                internal writes from the Action Inbox; public or external moves remain
+                approval-gated.
+              </p>
+            </div>
+            <Link className="button-secondary" href="/actions">
+              Open Action Inbox
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <TraceMetric icon={Route} label="Skills" value={run.skills_used.length} />
         <TraceMetric icon={Database} label="Sources" value={run.context_loaded.length} />

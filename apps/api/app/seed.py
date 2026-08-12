@@ -218,6 +218,7 @@ def import_skill_definitions(db: Session, source_root: Path) -> int:
             "16_financial_content_safety",
             "17_fact_checking",
             "20_analytics_review",
+            "30_mezie_content_cycle_development",
         }
         skill = SkillDefinition(
             slug=slug,

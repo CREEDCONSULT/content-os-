@@ -1,6 +1,6 @@
 # Skills
 
-BrandOS imports the supplied 30-skill library into `skill_definitions`. Every
+BrandOS imports the supplied 31-skill library into `skill_definitions`. Every
 record preserves its slug, contract, risk level, approval policy, source path,
 checksum, and enabled state.
 
@@ -23,6 +23,7 @@ The router does not let a model choose its own authority.
 - Safety and workflow: `16`–`19`.
 - Learning and evidence: `20`–`23`.
 - Capture, memory, and governance: `24`–`29`.
+- Full content-cycle orchestration: `30`.
 
 The source contracts remain under
 `docs/source/skills/Mezie_BrandOS_Skill_Library_v1`. Runtime definitions are

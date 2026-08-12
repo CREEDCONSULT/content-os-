@@ -37,6 +37,20 @@ ROUTES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("context", "context pack"), "26_context_pack_builder"),
     (("transparency", "agent run", "audit"), "27_agent_transparency"),
     (("publish", "public", "outreach"), "28_publishing_safety"),
+    (
+        (
+            "content cycle",
+            "content calendar",
+            "content plan",
+            "content sprint",
+            "campaign calendar",
+            "publishing cycle",
+            "production batch",
+            "repurposing plan",
+            "editorial program",
+        ),
+        "30_mezie_content_cycle_development",
+    ),
 )
 
 

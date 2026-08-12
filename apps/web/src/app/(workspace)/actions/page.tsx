@@ -21,7 +21,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/page-header";
-import { EmptyState, ErrorState, LoadingGrid } from "@/components/query-state";
+import { ErrorState, LoadingGrid } from "@/components/query-state";
 import { StatusPill } from "@/components/status-pill";
 import { api } from "@/lib/api";
 import type { AgentToolCall, Approval, ProposedDashboardAction } from "@/lib/contracts";
@@ -183,6 +183,8 @@ export default function AgentActionInboxPage() {
                 <button
                   key={item.id}
                   type="button"
+                  aria-label={item.label}
+                  aria-pressed={lane === item.id}
                   onClick={() => setLane(item.id)}
                   className={`focus-ring rounded-xl border p-4 text-left transition ${
                     lane === item.id
@@ -214,10 +216,19 @@ export default function AgentActionInboxPage() {
             <ErrorState error={proposals.error} retry={() => void proposals.refetch()} />
           )}
           {proposals.data && visibleActions.length === 0 && (
-            <EmptyState
-              title="No proposals in this lane."
-              body="Agent proposals will appear here after a conversation or agent run returns a safe dashboard action."
-            />
+            <div className="surface flex min-h-56 flex-col items-center justify-center p-8 text-center">
+              <DatabaseZap className="size-8 text-gold" aria-hidden />
+              <h2 className="mt-4 text-lg font-semibold">No proposals in this lane.</h2>
+              <p className="mt-2 max-w-lg text-sm text-muted">
+                Agent proposals will appear here after a conversation or agent run returns a
+                safe dashboard action. For the strongest end-to-end test, ask the Brand Director
+                to prepare a 10-day campaign.
+              </p>
+              <Link className="button-secondary mt-5" href="/agent">
+                Run Brand Director
+                <ExternalLink className="size-3.5" />
+              </Link>
+            </div>
           )}
           {visibleActions.length > 0 && (
             <div className="grid gap-4">
@@ -320,7 +331,13 @@ function ActionCard({
 }) {
   const [notes, setNotes] = useState("");
   const isSafeExecutable = action.action_type === "create_rough_idea" && action.risk_level === "low";
-  const title = typeof action.payload.title === "string" ? action.payload.title : formatAction(action.action_type);
+  const isCampaign = action.action_type === "create_campaign_plan";
+  const title =
+    typeof action.payload.title === "string"
+      ? action.payload.title
+      : typeof action.payload.campaign_name === "string"
+        ? action.payload.campaign_name
+        : formatAction(action.action_type);
   const approvalStatus = approval?.status;
 
   return (
@@ -429,8 +446,10 @@ function ActionCard({
               ? approvalStatus === "approved"
                 ? "Human approval is recorded. External execution remains paused until the matching adapter exists."
                 : "This action is intentionally paused behind human approval."
-              : isSafeExecutable
-                ? "This will create an internal rough idea. It will not publish, spend, or contact anyone."
+              : isSafeExecutable || isCampaign
+                ? isCampaign
+                  ? "This will stage an internal campaign plan, content records, calendar planning blocks, and experiments. It will not publish, spend, or contact anyone."
+                  : "This will create an internal rough idea. It will not publish, spend, or contact anyone."
                 : "Executing this proposal will create an approval gate instead of performing the risky action."}
         </p>
         {action.status === "proposed" && (
@@ -438,7 +457,7 @@ function ActionCard({
             <Play className="size-4" />
             {executing
               ? "Processing..."
-              : isSafeExecutable
+              : isSafeExecutable || isCampaign
                 ? "Execute safe write"
                 : "Create approval gate"}
           </button>

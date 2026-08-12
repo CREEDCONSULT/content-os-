@@ -269,6 +269,37 @@ def execute_agent_run(
         "next_actions": run.next_actions,
         "confidence": run.confidence,
     }
+    raw_input = dict(run.input_envelope.get("raw_input") or {})
+    session_id = (
+        str(raw_input.get("conversation_session_id"))
+        if raw_input.get("conversation_session_id")
+        else None
+    )
+    from app.services.actions import create_actions_from_agent_run
+
+    proposed_actions = create_actions_from_agent_run(
+        db,
+        run,
+        user,
+        session_id=session_id,
+    )
+    if proposed_actions:
+        result_references = [
+            {
+                "record_type": "proposed_dashboard_action",
+                "record_id": action.id,
+                "action_type": action.action_type,
+                "risk_level": action.risk_level.value,
+                "status": action.status,
+            }
+            for action in proposed_actions
+        ]
+        envelope = dict(run.output_envelope)
+        outputs = dict(envelope.get("outputs") or {})
+        outputs["result_references"] = result_references
+        envelope["outputs"] = outputs
+        run.output_envelope = envelope
+        run.tools_used = list(dict.fromkeys([*run.tools_used, "dashboard_action_router"]))
     run.completed_at = datetime.now(UTC)
     db.add(
         AuditEvent(
@@ -283,6 +314,14 @@ def execute_agent_run(
                 "skills": run.skills_used,
                 "provider": run.provider,
                 "context_pack_id": pack.id,
+                "proposed_dashboard_actions": [
+                    {
+                        "id": action.id,
+                        "action_type": action.action_type,
+                        "status": action.status,
+                    }
+                    for action in proposed_actions
+                ],
             },
             is_demo=result.provider == "mock",
         )

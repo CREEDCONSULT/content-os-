@@ -205,24 +205,51 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_conversation_messages_telegram_update_id"), table_name="conversation_messages")
+    op.drop_index(
+        op.f("ix_conversation_messages_telegram_update_id"),
+        table_name="conversation_messages",
+    )
     op.drop_index(op.f("ix_conversation_messages_status"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_session_id"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_sensitivity"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_sender_type"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_sender_id"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_message_type"), table_name="conversation_messages")
+    op.drop_index(
+        op.f("ix_conversation_messages_session_id"),
+        table_name="conversation_messages",
+    )
+    op.drop_index(
+        op.f("ix_conversation_messages_sensitivity"),
+        table_name="conversation_messages",
+    )
+    op.drop_index(
+        op.f("ix_conversation_messages_sender_type"),
+        table_name="conversation_messages",
+    )
+    op.drop_index(
+        op.f("ix_conversation_messages_sender_id"),
+        table_name="conversation_messages",
+    )
+    op.drop_index(
+        op.f("ix_conversation_messages_message_type"),
+        table_name="conversation_messages",
+    )
     op.drop_index(op.f("ix_conversation_messages_is_demo"), table_name="conversation_messages")
     op.drop_index(op.f("ix_conversation_messages_channel"), table_name="conversation_messages")
     op.drop_index(op.f("ix_conversation_messages_brand_id"), table_name="conversation_messages")
-    op.drop_index(op.f("ix_conversation_messages_agent_run_id"), table_name="conversation_messages")
+    op.drop_index(
+        op.f("ix_conversation_messages_agent_run_id"),
+        table_name="conversation_messages",
+    )
     op.drop_table("conversation_messages")
 
     op.drop_index(op.f("ix_conversation_sessions_status"), table_name="conversation_sessions")
     op.drop_index(op.f("ix_conversation_sessions_memory_scope"), table_name="conversation_sessions")
-    op.drop_index(op.f("ix_conversation_sessions_last_message_at"), table_name="conversation_sessions")
+    op.drop_index(
+        op.f("ix_conversation_sessions_last_message_at"),
+        table_name="conversation_sessions",
+    )
     op.drop_index(op.f("ix_conversation_sessions_is_demo"), table_name="conversation_sessions")
-    op.drop_index(op.f("ix_conversation_sessions_external_thread_id"), table_name="conversation_sessions")
+    op.drop_index(
+        op.f("ix_conversation_sessions_external_thread_id"),
+        table_name="conversation_sessions",
+    )
     op.drop_index(op.f("ix_conversation_sessions_channel"), table_name="conversation_sessions")
     op.drop_index(op.f("ix_conversation_sessions_brand_id"), table_name="conversation_sessions")
     op.drop_index(op.f("ix_conversation_sessions_active_agent"), table_name="conversation_sessions")

@@ -5,9 +5,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import UserPrincipal
-from app.db.models import AgentRun, Brand
+from app.db.models import (
+    AgentRun,
+    Brand,
+    CalendarEvent,
+    ContentItem,
+    Experiment,
+    MemoryRecord,
+    PipelineStatus,
+    ProposedDashboardAction,
+)
 from app.services.actions import create_actions_from_agent_run
 from app.services.providers import OpenAIResponsesProvider
+from app.services.skills import route_skill_slugs
 
 
 def test_skill_registry_is_seeded_from_supplied_contracts(
@@ -16,11 +26,26 @@ def test_skill_registry_is_seeded_from_supplied_contracts(
     response = authenticated_client.get("/api/v1/agent/skills")
     assert response.status_code == 200
     skills = response.json()
-    assert len(skills) == 30
+    assert len(skills) == 31
     router = next(item for item in skills if item["slug"] == "00_skill_router")
     assert router["version"] == "1.0.0"
     assert "Database" in router["allowed_tools"]
     assert router["output_schema"]["type"] == "object"
+    content_cycle = next(
+        item for item in skills if item["slug"] == "30_mezie_content_cycle_development"
+    )
+    assert "content cycle" in content_cycle["description"].lower()
+    assert content_cycle["model_profile"] == "brand_quality_model"
+
+
+def test_content_cycle_requests_route_to_new_skill() -> None:
+    slugs = route_skill_slugs(
+        "Create an August content calendar and production batch plan",
+        {"content_text": "Build a campaign calendar and repurposing plan."},
+    )
+    assert "30_mezie_content_cycle_development" in slugs
+    assert "26_context_pack_builder" in slugs
+    assert "27_agent_transparency" in slugs
 
 
 def test_mock_run_routes_skills_and_records_context(
@@ -268,8 +293,110 @@ def test_agent_proposed_write_becomes_dashboard_action(db: Session) -> None:
     assert created[0].payload["source_reference"] == f"agent_run:{run.id}"
 
 
+def test_campaign_agent_run_stages_and_executes_ten_day_rollout(
+    authenticated_client: TestClient,
+    db: Session,
+) -> None:
+    response = authenticated_client.post(
+        "/api/v1/agent/runs",
+        json={
+            "channel": "dashboard",
+            "intent": (
+                "Research and prepare a 10 day campaign and rollout strategy "
+                "for the Mr. C. Mezie BrandOS launch"
+            ),
+            "raw_input": {
+                "channel": "dashboard",
+                "content_text": (
+                    "Research and prepare a 10 day campaign and rollout strategy "
+                    "for the Mr. C. Mezie BrandOS launch"
+                ),
+                "force_web_research": True,
+                "desired_artifact": "10_day_campaign_rollout_strategy",
+            },
+            "idempotency_key": "test-campaign-run-0001",
+        },
+    )
+    assert response.status_code == 201
+    run = response.json()
+    assert run["status"] == "completed"
+    assert run["provider"] == "mock"
+    assert "dashboard_action_router" in run["tools_used"]
+    assert run["proposed_writes"][0]["action"] == "create_campaign_plan"
+    assert run["proposed_writes"][0]["record_type"] == "campaign_plan"
+
+    references = run["output_envelope"]["outputs"]["result_references"]
+    assert references == [
+        {
+            "record_type": "proposed_dashboard_action",
+            "record_id": references[0]["record_id"],
+            "action_type": "create_campaign_plan",
+            "risk_level": "low",
+            "status": "proposed",
+        }
+    ]
+    action_id = references[0]["record_id"]
+    action = db.get(ProposedDashboardAction, action_id)
+    assert action is not None
+    assert action.action_type == "create_campaign_plan"
+    assert len(action.payload["days"]) == 10
+    assert action.payload["rollout_strategy"]["objective"]
+
+    executed = authenticated_client.post(f"/api/v1/actions/proposals/{action_id}/execute")
+    assert executed.status_code == 200
+    result = executed.json()
+    assert result["action"]["status"] == "executed"
+    assert result["action"]["target_type"] == "campaign_plan"
+    assert result["tool_call"]["tool_name"] == "create_campaign_plan"
+    assert result["tool_call"]["tool_type"] == "safe_internal_orchestration"
+    assert result["tool_call"]["status"] == "completed"
+
+    output = result["tool_call"]["output_json"]
+    assert output["record_type"] == "campaign_plan"
+    assert len(output["content_item_ids"]) == 10
+    assert len(output["calendar_event_ids"]) == 10
+    assert len(output["experiment_ids"]) >= 2
+    assert "public posting remains approval-gated" in output["boundary"]
+
+    memory = db.get(MemoryRecord, output["record_id"])
+    assert memory is not None
+    assert memory.memory_type == "campaign_plan"
+    assert memory.sync_status == "database_only"
+    assert memory.content.count("### Day ") == 10
+    assert "## Research and analysis basis" in memory.content
+
+    content_items = list(
+        db.scalars(select(ContentItem).where(ContentItem.id.in_(output["content_item_ids"]))).all()
+    )
+    assert len(content_items) == 10
+    assert {item.status for item in content_items} == {PipelineStatus.BRIEF}
+    assert all(item.blocker and "approval" in item.blocker.lower() for item in content_items)
+
+    calendar_events = list(
+        db.scalars(
+            select(CalendarEvent).where(CalendarEvent.id.in_(output["calendar_event_ids"]))
+        ).all()
+    )
+    assert len(calendar_events) == 10
+    assert {event.event_type for event in calendar_events} == {"write"}
+    assert all(
+        "Internal BrandOS planning block only" in (event.notes or "")
+        for event in calendar_events
+    )
+
+    experiments = list(
+        db.scalars(select(Experiment).where(Experiment.id.in_(output["experiment_ids"]))).all()
+    )
+    assert len(experiments) == len(output["experiment_ids"])
+
+
 def test_openai_strict_schema_defines_proposed_writes_items() -> None:
     schema = OpenAIResponsesProvider._output_schema()
     proposed_writes = schema["properties"]["proposed_writes"]["items"]
     assert proposed_writes["additionalProperties"] is False
-    assert proposed_writes["required"] == ["record_type", "action", "rationale"]
+    assert proposed_writes["required"] == [
+        "record_type",
+        "action",
+        "rationale",
+        "payload_json",
+    ]
